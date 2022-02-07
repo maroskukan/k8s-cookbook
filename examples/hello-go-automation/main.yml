@@ -62,6 +62,55 @@
         DOCKER_TLS_VERIFY: "{{ docker_tls_verify }}"
         DOCKER_CERT_PATH: "{{ docker_wsl_cert_path.stdout }}"
 
-    # - name: Print image hash
-    #   debug:
-    #     msg: "{{ image_hash.stdout }}"
+    - name: Create a Deployment to run Hello Go.
+      k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: hello-go
+            namespace: default
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: hello-go
+            template:
+              metadata:
+                labels:
+                  app: hello-go
+              spec:
+                containers:
+                  - name: hello-go
+                    image: "{{ image_name }}"
+                    imagePullPolicy: IfNotPresent
+                    ports:
+                      - containerPort: 8180
+
+    - name: Create a Service for Hello Go.
+      k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: hello-go
+            namespace: default
+          spec:
+            type: LoadBalancer
+            ports:
+              - port: 8180
+                targetPort: 8180
+            selector:
+              app: hello-go
+
+  post_tasks:
+    - name: Expose Hello Go on the host via Minikube.
+      command: minikube service hello-go --url=true
+      changed_when: false
+      register: minikube_service
+
+    - name: Display Hello Go Service URL.
+      debug:
+        msg: "Hello Go URL: {{ minikube_service['stdout_lines'][0] }}"
