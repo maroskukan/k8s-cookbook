@@ -7,64 +7,63 @@
     docker_tls_verify: '1'
     docker_cert_path: 'C:\Users\maros_kukan\.minikube\certs'
     image_name: hello-go
+    replicas: 1
+    app_state: present
 
   pre_tasks:
-    - name: Check Minikube's status.
-      command: minikube status
-      register: minikube_status
-      changed_when: false
-      ignore_errors: true
+    - block:
+        - name: Check Minikube's status.
+          command: minikube status
+          register: minikube_status
+          changed_when: false
+          ignore_errors: true
 
-    - name: Start Minikube if it's not running.
-      command: minikube start
-      when: "not minikube_status.stdout or 'Running' not in minikube_status.stdout"
+        - name: Start Minikube if it's not running.
+          command: minikube start
+          when: "not minikube_status.stdout or 'Running' not in minikube_status.stdout"
 
-    - name: Retrieve Minikube IP address.
-      command: minikube ip
-      register: minikube_ip
-      changed_when: false
-      ignore_errors: true
+        - name: Retrieve Minikube IP address.
+          command: minikube ip
+          register: minikube_ip
+          changed_when: false
+          ignore_errors: true
 
-    - name: Retrieve Minikube WSL cert path.
-      command: wslpath "{{ docker_cert_path }}"
-      register: docker_wsl_cert_path
-      changed_when: false
-      ignore_errors: true
+        - name: Retrieve Minikube WSL cert path.
+          command: wslpath "{{ docker_cert_path }}"
+          register: docker_wsl_cert_path
+          changed_when: false
+          ignore_errors: true
+      when: app_state == 'present'
 
   tasks:
-    - name: Updating docker daemon configuration.
-      set_fact:
-        docker_host: "tcp://{{ minikube_ip.stdout }}:2376"
+    - block:
+        - name: Updating docker daemon configuration.
+          set_fact:
+            docker_host: "tcp://{{ minikube_ip.stdout }}:2376"
 
-    # - name: Print image hash
-    #   debug:
-    #     msg:
-    #       - "{{ docker_host }}"
-    #       - "{{ docker_tls_verify }}"
-    #       - "{{ docker_wsl_cert_path.stdout }}"
+        - name: Get exisitng image hash.
+          shell: |
+            docker images -q {{ image_name }}
+          register: image_hash
+          changed_when: false
+          environment:
+            DOCKER_HOST: "{{ docker_host }}"
+            DOCKER_TLS_VERIFY: "{{ docker_tls_verify }}"
+            DOCKER_CERT_PATH: "{{ docker_wsl_cert_path.stdout }}"
 
-    - name: Get exisitng image hash.
-      shell: |
-        docker images -q {{ image_name }}
-      register: image_hash
-      changed_when: false
-      environment:
-        DOCKER_HOST: "{{ docker_host }}"
-        DOCKER_TLS_VERIFY: "{{ docker_tls_verify }}"
-        DOCKER_CERT_PATH: "{{ docker_wsl_cert_path.stdout }}"
+        - name: Build image if it's not already built.
+          shell: |
+            docker build -t {{ image_name }} ../hello-go
+          when: not image_hash.stdout
+          environment:
+            DOCKER_HOST: "{{ docker_host }}"
+            DOCKER_TLS_VERIFY: "{{ docker_tls_verify }}"
+            DOCKER_CERT_PATH: "{{ docker_wsl_cert_path.stdout }}"
+      when: app_state == 'present'
 
-    - name: Build image if it's not already built.
-      shell: |
-        docker build -t {{ image_name }} ../hello-go
-      when: not image_hash.stdout
-      environment:
-        DOCKER_HOST: "{{ docker_host }}"
-        DOCKER_TLS_VERIFY: "{{ docker_tls_verify }}"
-        DOCKER_CERT_PATH: "{{ docker_wsl_cert_path.stdout }}"
-
-    - name: Create a Deployment to run Hello Go.
+    - name: Manage Deployment for Hello Go.
       k8s:
-        state: present
+        state: "{{ app_state }}"
         definition:
           apiVersion: apps/v1
           kind: Deployment
@@ -72,7 +71,7 @@
             name: hello-go
             namespace: default
           spec:
-            replicas: 1
+            replicas: "{{ replicas }}"
             selector:
               matchLabels:
                 app: hello-go
@@ -88,9 +87,9 @@
                     ports:
                       - containerPort: 8180
 
-    - name: Create a Service for Hello Go.
+    - name: Manage a Service for Hello Go.
       k8s:
-        state: present
+        state: "{{ app_state }}"
         definition:
           apiVersion: v1
           kind: Service
@@ -106,11 +105,13 @@
               app: hello-go
 
   post_tasks:
-    - name: Expose Hello Go on the host via Minikube.
-      command: minikube service hello-go --url=true
-      changed_when: false
-      register: minikube_service
+    - block:
+        - name: Expose Hello Go on the host via Minikube.
+          command: minikube service hello-go --url=true
+          changed_when: false
+          register: minikube_service
 
-    - name: Display Hello Go Service URL.
-      debug:
-        msg: "Hello Go URL: {{ minikube_service['stdout_lines'][0] }}"
+        - name: Display Hello Go Service URL.
+          debug:
+            msg: "Hello Go URL: {{ minikube_service['stdout_lines'][0] }}"
+      when: app_state == "present"
