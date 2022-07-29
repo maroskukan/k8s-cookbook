@@ -1,0 +1,39 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  # Provider Shared Configuration
+  config.ssh.insert_key = false
+
+  # Hyper-V Provider Specific Configuration
+  config.vm.provider "hyperv" do |h|
+    h.linked_clone = true
+    h.cpus = 2
+    h.memory = 2048
+    h.maxmemory = 2048
+  end
+
+  # Virtualbox Provider Specific Configuration
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 2048
+    v.cpus = 2
+  end
+
+  config.vm.define "drupal" do |drupal|
+    # VM Shared Configuration
+    drupal.vm.box = "maroskukan/ubuntu2204"
+    drupal.vm.hostname = "drupal"
+
+    # Hyper-V VM Specific Configuration
+    drupal.vm.provider 'hyperv' do |h, override|
+      override.vm.network "public_network", bridge: "Default Switch"
+      override.vm.synced_folder '.', '/vagrant', disabled: true
+    end
+
+    # Virtualbox VM Specific Configuration
+    drupal.vm.provider 'virtualbox' do |v, override|
+      override.vm.synced_folder ".", "/vagrant", disabled: true
+    end
+  end
+end
