@@ -8,6 +8,7 @@
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
+    - [Minikube Tunnel Configuration](#minikube-tunnel-configuration)
 
 ## Deployments
 
@@ -116,4 +117,20 @@ docker context use default
 
 docker info -f {{.Name}}
 docker-desktop
+```
+
+### Minikube Tunnel Configuration
+
+With `minikube tunnel` it might happen that existing the foreground process in Windows does not remove the route that was added after process closure. This can be observerd by looking at host's active routes.
+
+```powershell
+# Show all routes that include minikube's address
+netsh int ipv4 sh route | FindStr $(minikube ip)
+No       Manual    1    10.96.0.0/12               39  172.17.237.195
+```
+
+To remove them manually.
+
+```powershell
+netsh int ipv4 delete route 10.96.0.0/12 39 $(minikube ip)
 ```
