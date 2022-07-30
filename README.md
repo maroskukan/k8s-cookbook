@@ -100,10 +100,14 @@ export DOCKER_CERT_PATH=/mnt/c/Users/maros_kukan/.minikube
 This will affect the current shell session only. To make changes persistent you can create a new context.
 
 ```bash
-# Create context
-docker context create minikube \
+# Retrieve the Minikube's host address and certificate paths
+DOCKER_HOST="tcp://$(minikube ip):2376"
+DOCKER_CERT_PATH=$(wslpath "$(wslvar USERPROFILE)/.minikube/certs")
+
+# Create and update Minikube context
+docker context create minikube &>/dev/null
 --description "Secured connection from localhost toward minikube" \
---docker "host=$DOCKER_HOST,ca=$DOCKER_CERT_PATH/ca.pem,cert=$DOCKER_CERT_PATH/cert.pem,key=$DOCKER_CERT_PATH/key.pem"
+--docker "host=${DOCKER_HOST},ca=${DOCKER_CERT_PATH}/ca.pem,cert=${DOCKER_CERT_PATH}/cert.pem,key=${DOCKER_CERT_PATH}/key.pem" &>/dev/null
 
 # Switch to context
 docker context use minikube
