@@ -11,6 +11,7 @@
     - [Minikube Docker Configuration](#minikube-docker-configuration)
     - [Minikube Tunnel Configuration](#minikube-tunnel-configuration)
     - [Play with K8s](#play-with-k8s)
+    - [Kubectl Configuration](#kubectl-configuration)
 
 
 ## Documentation
@@ -151,6 +152,9 @@ netsh int ipv4 delete route 10.96.0.0/12 39 $(minikube ip)
 
 Reference deployment settings for play with k8s labs.
 
+Within the web console use `CTRL+Insert` for copy and `SHIFT+Insert` for paste.
+
+On the first node, initialize cluster master node, cluster networking and create deployment.
 ```bash
 
 kubeadm init --apiserver-advertise-address $(hostname -i) --pod-network-cidr 10.5.0.0/16
@@ -158,4 +162,25 @@ kubeadm init --apiserver-advertise-address $(hostname -i) --pod-network-cidr 10.
 kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
 
 kube apply -f https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/nginx-app.yaml
+```
+
+On the second and third worker node, join cluster using the output from `kubeadm init` command.
+
+```bash
+kubeadm join 192.168.0.8:6443 \
+--token abcdef.0123456789abcdef \
+--discovery-token-ca-cert-has sha256
+```
+
+Finally verify the cluster status.
+
+```
+kubectl cluster-info
+kubectl get-nodes -o wide
+```
+
+### Kubectl Configuration
+
+```bash
+export KUBECONFIG=~/.kube/<yourconfiguration-file>.yaml
 ```
