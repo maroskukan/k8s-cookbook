@@ -1,6 +1,7 @@
 # Kubernetes
 
 - [Kubernetes](#kubernetes)
+  - [Documentation](#documentation)
   - [Deployments](#deployments)
     - [Setup](#setup)
     - [Scaling](#scaling)
@@ -9,6 +10,13 @@
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
     - [Minikube Tunnel Configuration](#minikube-tunnel-configuration)
+    - [Play with K8s](#play-with-k8s)
+
+
+## Documentation
+
+- [Minikube](https://minikube.sigs.k8s.io/)
+- [Play With k8s](https://labs.play-with-k8s.com/)
 
 ## Deployments
 
@@ -137,4 +145,17 @@ To remove them manually.
 
 ```powershell
 netsh int ipv4 delete route 10.96.0.0/12 39 $(minikube ip)
+```
+
+### Play with K8s
+
+Reference deployment settings for play with k8s labs.
+
+```bash
+
+kubeadm init --apiserver-advertise-address $(hostname -i) --pod-network-cidr 10.5.0.0/16
+
+kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
+
+kube apply -f https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/application/nginx-app.yaml
 ```
