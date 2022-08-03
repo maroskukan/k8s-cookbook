@@ -101,10 +101,16 @@ docker rmi hello-go
 
 Default Hyper-V network configuration does not permit traffic between existing vSwitches. This is an issue when you need to talk to for example minikube instance running on Hyper-V connected to `Default Switch` from a WSL2 instance connected to `WSL` vSwitch.
 
-In order to permit this traffic, execute the following command from privileged Powershell prompt:
+In order to permit this traffic, execute the following command from Powershell prompt:
 
 ```powershell
 Get-NetIPInterface | where {$_.InterfaceAlias -eq 'vEthernet (WSL)' -or $_.InterfaceAlias -eq 'vEthernet (Default Switch)'} | Set-NetIPInterface -Forwarding Enabled
+```
+
+Or add the following line to your shell rc file.
+
+```bash
+powershell.exe -c "Get-NetIPInterface | where {\$_.InterfaceAlias -eq 'vEthernet (WSL)' -or \$_.InterfaceAlias -eq 'vEthernet (Default Switch)'} | Set-NetIPInterface -Forwarding Enabled 2> \$null"
 ```
 
 ### Minikube Docker Configuration
