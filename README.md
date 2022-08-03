@@ -2,6 +2,8 @@
 
 - [Kubernetes](#kubernetes)
   - [Documentation](#documentation)
+  - [Environment](#environment)
+    - [Quick start](#quick-start)
   - [Deployments](#deployments)
     - [Setup](#setup)
     - [Scaling](#scaling)
@@ -18,6 +20,17 @@
 
 - [Minikube](https://minikube.sigs.k8s.io/)
 - [Play With k8s](https://labs.play-with-k8s.com/)
+
+
+## Environment
+
+### Quick start
+
+```bash
+pyenv virtualenv 3.9.6 k8s-cookbook
+pip install --upgrade pip setuptools
+pip install -r requirements-dev.txt
+```
 
 ## Deployments
 
