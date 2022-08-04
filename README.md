@@ -63,6 +63,9 @@ minikube service hello-go
 
 # Check instances logs
 kubectl logs -l app=hello-go
+
+# Get all resources
+kubectl get all
 ```
 
 ### Scaling
