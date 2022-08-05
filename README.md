@@ -8,6 +8,12 @@
     - [Setup](#setup)
     - [Scaling](#scaling)
     - [Cleanup](#cleanup)
+  - [Labels](#labels)
+    - [Create](#create)
+    - [Display](#display)
+    - [Update](#update)
+    - [Delete](#delete)
+    - [Filter](#filter)
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
@@ -95,6 +101,149 @@ kubectl delete deployment hello-go
 
 # Delete the container image
 docker rmi hello-go
+```
+
+
+## Labels
+
+Labels are used to organize resources in the K8s cluster. You can define labels in the resource definition during deployment time.
+
+### Create
+
+```yml
+kind: Pod
+metadata:
+  name: helloworld
+  labels:
+    env: production
+    author: maros
+    application_type: ui
+    release-version: "1.0"
+```
+
+### Display
+
+After the resource has been create you can display label values with `--show-labels` argument.
+
+```bash
+# Display pods with associated labels
+kubectl get pods --show-labels
+NAME         READY   STATUS    RESTARTS   AGE   LABELS
+helloworld   1/1     Running   0          84s   application_type=ui,author=maros,env=production,release-version=1.0
+```
+
+### Update
+
+You can also create or update labels during runtime with `label` resource.
+
+```bash
+# Create or update label value
+kubectl label pod/helloworld app_id=1092134
+kubectl label pod/helloworld app=helloworldapp
+```
+
+### Delete
+
+```
+# Delete a label
+kubectl label pod/helloworld app-
+```
+
+### Filter
+
+In order to filter based on labels, create a sample infrastructure.
+
+```bash
+# Create a bunch of sample pods
+kubectl apply -f https://raw.githubusercontent.com/karthequian/Kubernetes/master/04_02_Searching_for_labels/sample-infrastructure-with-labels.yml
+```
+
+```bash
+# Display pods with associated labels
+NAME               READY   STATUS    RESTARTS   AGE    LABELS
+cart-dev           1/1     Running   0          116s   application_type=api,dev-lead=carisa,env=development,release-version=1.0,team=ecommerce
+cart-prod          1/1     Running   0          116s   application_type=api,dev-lead=carisa,env=production,release-version=1.0,team=ecommerce
+cart-staging       1/1     Running   0          116s   application_type=api,dev-lead=carisa,env=staging,release-version=1.0,team=ecommerce
+catalog-dev        1/1     Running   0          116s   application_type=api,dev-lead=daniel,env=development,release-version=4.0,team=ecommerce
+catalog-prod       1/1     Running   0          116s   application_type=api,dev-lead=daniel,env=production,release-version=4.0,team=ecommerce
+catalog-staging    1/1     Running   0          116s   application_type=api,dev-lead=daniel,env=staging,release-version=4.0,team=ecommerce
+homepage-dev       1/1     Running   0          117s   application_type=ui,dev-lead=karthik,env=development,release-version=12.0,team=web
+homepage-prod      1/1     Running   0          116s   application_type=ui,dev-lead=karthik,env=production,release-version=12.0,team=web
+homepage-staging   1/1     Running   0          116s   application_type=ui,dev-lead=karthik,env=staging,release-version=12.0,team=web
+login-dev          1/1     Running   0          116s   application_type=api,dev-lead=jim,env=development,release-version=1.0,team=auth
+login-prod         1/1     Running   0          116s   application_type=api,dev-lead=jim,env=production,release-version=1.0,team=auth
+login-staging      1/1     Running   0          116s   application_type=api,dev-lead=jim,env=staging,release-version=1.0,team=auth
+ordering-dev       1/1     Running   0          116s   application_type=backend,dev-lead=chen,env=development,release-version=2.0,team=purchasing
+ordering-prod      1/1     Running   0          116s   application_type=backend,dev-lead=chen,env=production,release-version=2.0,team=purchasing
+ordering-staging   1/1     Running   0          116s   application_type=backend,dev-lead=chen,env=staging,release-version=2.0,team=purchasing
+quote-dev          1/1     Running   0          116s   application_type=api,dev-lead=amy,env=development,release-version=2.0,team=ecommerce
+quote-prod         1/1     Running   0          116s   application_type=api,dev-lead=amy,env=production,release-version=1.0,team=ecommerce
+quote-staging      1/1     Running   0          116s   application_type=api,dev-lead=amy,env=staging,release-version=2.0,team=ecommerce
+social-dev         1/1     Running   0          116s   application_type=api,dev-lead=carisa,env=development,release-version=2.0,team=marketing
+social-prod        1/1     Running   0          116s   application_type=api,dev-lead=marketing,env=production,release-version=1.0,team=marketing
+social-staging     1/1     Running   0          116s   application_type=api,dev-lead=marketing,env=staging,release-version=1.0,team=marketing
+```
+
+Search with `selector` arguemnt.
+
+```bash
+# Display pods in production environment
+kubectl get pods --selector env=production
+NAME            READY   STATUS    RESTARTS   AGE
+cart-prod       1/1     Running   0          4m6s
+catalog-prod    1/1     Running   0          4m6s
+homepage-prod   1/1     Running   0          4m6s
+login-prod      1/1     Running   0          4m6s
+ordering-prod   1/1     Running   0          4m6s
+quote-prod      1/1     Running   0          4m6s
+social-prod     1/1     Running   0          4m6s
+
+# Display pods with multiple labels
+kubectl get pods --selector dev-lead=carisa,env=development
+NAME         READY   STATUS    RESTARTS   AGE
+cart-dev     1/1     Running   0          6m46s
+social-dev   1/1     Running   0          6m46s
+
+# Display pods with multiple labels - negation
+kubectl get pods --selector dev-lead!=carisa,env=development --show-labels
+NAME           READY   STATUS    RESTARTS   AGE     LABELS
+catalog-dev    1/1     Running   0          9m52s   application_type=api,dev-lead=daniel,env=development,release-version=4.0,team=ecommerce
+homepage-dev   1/1     Running   0          9m53s   application_type=ui,dev-lead=karthik,env=development,release-version=12.0,team=web
+login-dev      1/1     Running   0          9m52s   application_type=api,dev-lead=jim,env=development,release-version=1.0,team=auth
+ordering-dev   1/1     Running   0          9m52s   application_type=backend,dev-lead=chen,env=development,release-version=2.0,team=purchasing
+quote-dev      1/1     Running   0          9m52s   application_type=api,dev-lead=amy,env=development,release-version=2.0,team=ecommerce
+```
+
+Instead of `--selector` argument you can also use the `-l` argument.
+
+```bash
+# Display pods with certain release-version value (in or notin)
+kubectl get pods -l 'release-version in (1.0,2.0)'
+NAME               READY   STATUS    RESTARTS      AGE
+cart-dev           1/1     Running   1 (33s ago)   12m
+cart-prod          1/1     Running   1 (63s ago)   12m
+cart-staging       1/1     Running   1 (67s ago)   12m
+login-dev          1/1     Running   1 (88s ago)   12m
+login-prod         1/1     Running   1 (71s ago)   12m
+login-staging      1/1     Running   1 (94s ago)   12m
+ordering-dev       1/1     Running   1 (24s ago)   12m
+ordering-prod      1/1     Running   1 (16s ago)   12m
+ordering-staging   1/1     Running   1 (20s ago)   12m
+quote-dev          1/1     Running   1 (57s ago)   12m
+quote-prod         1/1     Running   1 (30s ago)   12m
+quote-staging      1/1     Running   1 (79s ago)   12m
+social-dev         1/1     Running   1 (75s ago)   12m
+social-prod        1/1     Running   1 (54s ago)   12m
+social-staging     1/1     Running   1 (38s ago)   12m
+```
+
+You can also use labels to delete a resource.
+
+```bash
+# Delete all pods owned by carisa in dev environment
+kubectl delete pod -l dev-lead=carisa,env=development
+pod "cart-dev" deleted
+pod "social-dev" deleted
 ```
 
 
