@@ -14,6 +14,7 @@
     - [Update](#update)
     - [Delete](#delete)
     - [Filter](#filter)
+  - [Application Health Check](#application-health-check)
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
@@ -246,6 +247,25 @@ pod "cart-dev" deleted
 pod "social-dev" deleted
 ```
 
+
+## Application Health Check
+
+The `readinessProbe` and `livenessProbe` defined in deployment specification are used for application level healthchecks.
+
+```bash
+# Apply a new deployment
+kubectl apply -f helloworld-with-probes.yaml
+
+# Display the deployment status
+kubectl get deployment/helloworld-deployment-with-probes
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+helloworld-deployment-with-probes   1/1     1            1           27m
+
+# Display the replicaset status
+kubectl get replicaset
+NAME                                           DESIRED   CURRENT   READY   AGE
+helloworld-deployment-with-probes-644c46c778   1         1         1       30m
+```
 
 ## Tips
 
