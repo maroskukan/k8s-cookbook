@@ -8,6 +8,10 @@
     - [Setup](#setup)
     - [Scaling](#scaling)
     - [Cleanup](#cleanup)
+  - [Namespaces](#namespaces)
+    - [Formatting](#formatting)
+    - [Sorting](#sorting)
+    - [Filtering](#filtering)
   - [Labels](#labels)
     - [Create](#create)
     - [Display](#display)
@@ -105,6 +109,110 @@ docker rmi hello-go
 ```
 
 
+## Namespaces
+
+Namespaces are used to organize resources in cluster. By default new applications are deployed in the `default` namespace. There are also some tthat kubernetes uses for its operation.
+
+```bash
+# Create a sample infrastructure deployment
+kubectl apply -f sample-infrastrcuture.yaml
+
+# Display existing namespaces
+kubectl get namespaces
+NAME              STATUS   AGE
+auth              Active   112s
+cart              Active   112s
+catalog           Active   111s
+default           Active   4d16h
+infra             Active   111s
+kube-node-lease   Active   4d16h
+kube-public       Active   4d16h
+kube-system       Active   4d16h
+purchasing        Active   111s
+quote             Active   111s
+social            Active   111s
+web               Active   112s
+
+# Display pods from cart namespace
+kubectl get pods -n cart
+```
+
+### Formatting
+
+You can change the default output format using the `-o` flag.
+
+```bash
+# Using the wide format
+kubectl get pods -o wide -n cart
+NAME           READY   STATUS    RESTARTS      AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+cart-dev       1/1     Running   1 (80s ago)   11m   172.17.0.12   minikube   <none>           <none>
+cart-prod      1/1     Running   1 (95s ago)   11m   172.17.0.6    minikube   <none>           <none>
+cart-staging   1/1     Running   1 (73s ago)   11m   172.17.0.11   minikube   <none>           <none>
+
+# Using the json format
+kubectl get pods -o json -n cart
+
+    "apiVersion": "v1",
+    "items": [
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "annotations": {
+                    "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"v1\",\"kind\":\"Pod\",\"metadata\":{\"annotations\":{},\"labels\":{\"application_type\":\"api\",\"dev-lead\":\"carisa\",\"env\":\"development\",\"release-version\":\"1.0\",\"team\":\"ecommerce\"},\"name\":\"cart-dev\",\"namespace\":\"cart\"},\"spec\":{\"containers\":[{\"image\":\"karthequian/ruby:latest\",\"name\":\"cart\"}]}}\n"
+                },
+                "creationTimestamp": "2022-08-07T11:28:17Z",
+                "labels": {
+                    "application_type": "api",
+                    "dev-lead": "carisa",
+                    "env": "development",
+                    "release-version": "1.0",
+                    "team": "ecommerce"
+...                },
+[ Omitted for brevity ]
+...
+
+# Using the yaml format
+kubectl get pods -o yaml -n cart
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"application_type":"api","dev-lead":"carisa","env":"development","release-version":"1.0","team":"ecommerce"},"name":"cart-dev","namespace":"cart"},"spec":{"containers":[{"image":"karthequian/ruby:latest","name":"cart"}]}}
+    creationTimestamp: "2022-08-07T11:28:17Z"
+    labels:
+      application_type: api
+      dev-lead: carisa
+      env: development
+      release-version: "1.0"
+      team: ecommerce
+...
+[ Omitted for brevity ]
+...
+```
+
+### Sorting
+
+```bash
+kubectl get pods --sort-by=.metadata.name --all-namespaces | head -n 6
+NAMESPACE     NAME                               READY   STATUS    RESTARTS        AGE
+cart          cart-dev                           1/1     Running   1 (6m30s ago)   17m
+cart          cart-prod                          1/1     Running   1 (6m45s ago)   17m
+cart          cart-staging                       1/1     Running   1 (6m23s ago)   17m
+catalog       catalog-dev                        1/1     Running   1 (6m ago)      17m
+catalog       catalog-prod                       1/1     Running   1 (6m4s ago)    17m
+```
+
+### Filtering
+
+```bash
+kubectl get pods -o=jsonpath="{..image}" -l env=staging -n cart
+karthequian/ruby:latest karthequian/ruby:latest
+```
+
 ## Labels
 
 Labels are used to organize resources in the K8s cluster. You can define labels in the resource definition during deployment time.
@@ -185,7 +293,7 @@ social-prod        1/1     Running   0          116s   application_type=api,dev-
 social-staging     1/1     Running   0          116s   application_type=api,dev-lead=marketing,env=staging,release-version=1.0,team=marketing
 ```
 
-Search with `selector` arguemnt.
+Search with `selector` argument.
 
 ```bash
 # Display pods in production environment
