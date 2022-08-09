@@ -11,8 +11,10 @@
 helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
 
 # Deploy nfs-subdir-external provisioner in default namespace
+NFS_PRIVATE_IP=192.168.173.1
+
 helm install nfs-subdir-external-provisioner nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
-    --set nfs.server=192.168.191.112 \
+    --set nfs.server=$NFS_PRIVATE_IP \
     --set nfs.path=/home/nfs
 
 # Verify the pod status
@@ -49,6 +51,7 @@ NODE_PORT=$(kubectl get service drupal -n drupal -o json | jq -r '.spec.ports[].
 NODE_ADDRESS=$(kubectl get nodes -o json | jq -r '.items[0].status.addresses[] | select(.type=="ExternalIP").address')
 
 # Complete the drupal installation from web ui
+echo "http://$NODE_ADDRESS:$NODE_PORT/"
 
 # Verify the content of /home/nfs on NFS server
 ls /home/nfs/
