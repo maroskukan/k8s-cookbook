@@ -76,3 +76,20 @@ Expires: Sun, 19 Nov 1978 05:00:00 GMT
 X-Generator: Drupal 9 (https://www.drupal.org)
 X-Drupal-Cache: HIT
 ```
+
+After the service is reachable through ingress, you can disable external reachability through Node by changing service specification type from `NodePort` to `ClusterIP`.
+
+```bash
+# Verify the current service port mapping
+kubectl get svc drupal -n drupal
+NAME     TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+drupal   NodePort   10.128.16.41   <none>        80:30432/TCP   43m
+
+# Apply the new configuration
+kubectl apply -f drupal-service.yaml
+
+# Verify the current service port mapping
+kubectl get svc drupal -n drupal
+NAME     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+drupal   ClusterIP   10.128.16.41   <none>        80/TCP    44m
+```
