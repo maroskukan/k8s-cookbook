@@ -1,0 +1,25 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: drupal
+  namespace: drupal
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod # Sets cluster issuer type
+spec:
+  tls: # Describes TLS configuration
+  - hosts:
+    - drupal.buldogchef.com
+    secretName: drupal-tls
+  rules:
+  - host: drupal.buldogchef.com
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: drupal
+              port:
+                number: 80

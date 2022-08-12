@@ -93,3 +93,86 @@ kubectl get svc drupal -n drupal
 NAME     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 drupal   ClusterIP   10.128.16.41   <none>        80/TCP    44m
 ```
+
+### Cert Manager
+
+```bash
+# Create namespace
+kubectl create namespace cert-manager
+
+# Add helm repository
+helm repo add jetstack https://charts.jetstack.io
+
+# Update local cache
+helm repo update
+
+# Install custom resource definitions
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.crds.yaml
+
+# Install cert-manager
+helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.9.1
+
+# Verify pods in cert-manager namespace
+kubectl get pods -n cert-manager
+NAME                                       READY   STATUS    RESTARTS   AGE
+cert-manager-85f68f95f-bvqd2               1/1     Running   0          38s
+cert-manager-cainjector-7d9668978d-ld8k9   1/1     Running   0          38s
+cert-manager-webhook-66c8f6c75-xb9l4       1/1     Running   0          38s
+```
+
+#### ClusterIssuer
+
+In order to begin issuing certificates, you will need to set up a ClusterIssuer or Issuer resource (for example, by creating a 'letsencrypt-staging' issuer).
+
+```bash
+# Deploy cluster issuer
+kubectl apply -f cluster-issuer.yaml
+clusterissuer.cert-manager.io/letsencrypt-prod created
+
+# Verify cluster issuer
+kubectl get clusterissuer
+NAME               READY   AGE
+letsencrypt-prod   True    32s
+```
+
+#### Update Ingress Record
+
+In order to use request and use a certificate, you need to add new annotation `cert-manager.io/cluster-issuer` in `metadata` key and `tls` in `spec` key for ingress record.
+
+```bash
+# Apply new definition
+kubectl apply -f drupal-ingress-tls.yaml
+
+# Monitor the cert manager logs
+kubectl logs -f -cert-manager -l app=cert-manager
+
+# Verify the TLS by hitting the http endpoint
+# You will see redirection to https
+curl -I -L http://drupal.buldogchef.com
+HTTP/1.1 308 Permanent Redirect
+Date: Fri, 12 Aug 2022 10:27:32 GMT
+Content-Type: text/html
+Content-Length: 164
+Connection: keep-alive
+Location: https://drupal.buldogchef.com
+
+HTTP/2 200
+date: Fri, 12 Aug 2022 10:27:33 GMT
+content-type: text/html; charset=UTF-8
+x-powered-by: PHP/8.0.22
+cache-control: must-revalidate, no-cache, private
+x-drupal-dynamic-cache: MISS
+x-ua-compatible: IE=edge
+content-language: en
+x-content-type-options: nosniff
+x-frame-options: SAMEORIGIN
+permissions-policy: interest-cohort=()
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+x-generator: Drupal 9 (https://www.drupal.org)
+x-drupal-cache: HIT
+strict-transport-security: max-age=15724800; includeSubDomains
+```
