@@ -1,5 +1,15 @@
 # Drupal behind ingress-nginx controller
 
+## Prerequisites
+
+Before proceeding with the ingress deployment, make sure you have `drupal` and `mariadb` definitions in place:
+
+From the current directory, use `kubectl` to apply the `namespace`, `deployment`, and `service` definitions.
+
+```bash
+kubectl apply -f ../drupal-k8s-scaling/drupal.yml -f ../drupal-k8s-scaling/mariabdb.yml
+```
+
 ## Deployment
 
 ### Ingress Controller
@@ -135,28 +145,51 @@ drupal   ClusterIP   10.128.16.41   <none>        80/TCP    44m
 
 ### Cert Manager
 
+[Cert Manager](https://cert-manager.io/) is cloud native certificate management solution.
+
+Start by creating a `cert-manager` namespace:
+
 ```bash
-# Create namespace
 kubectl create namespace cert-manager
+```
 
-# Add helm repository
+Next, add Jetstack helm repository:
+
+```bash
 helm repo add jetstack https://charts.jetstack.io
+```
 
-# Update local cache
+Next, refresh local helm cache:
+
+```bash
 helm repo update
+```
 
-# Install custom resource definitions
+Next, install custom resource definitions:
+
+```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.crds.yaml
+```
 
-# Install cert-manager
+Next, install cert-manager:
+
+```bash
 helm install \
   cert-manager jetstack/cert-manager \
   --namespace cert-manager \
   --create-namespace \
   --version v1.9.1
+```
 
-# Verify pods in cert-manager namespace
+Verify pods in cert-manager namespace
+
+```bash
 kubectl get pods -n cert-manager
+```
+
+If everything worked correctly, you should see the following pods in `Running` state:
+
+```bash
 NAME                                       READY   STATUS    RESTARTS   AGE
 cert-manager-85f68f95f-bvqd2               1/1     Running   0          38s
 cert-manager-cainjector-7d9668978d-ld8k9   1/1     Running   0          38s
@@ -167,13 +200,21 @@ cert-manager-webhook-66c8f6c75-xb9l4       1/1     Running   0          38s
 
 In order to begin issuing certificates, you will need to set up a ClusterIssuer or Issuer resource (for example, by creating a 'letsencrypt-staging' issuer).
 
-```bash
-# Deploy cluster issuer
-kubectl apply -f cluster-issuer.yaml
-clusterissuer.cert-manager.io/letsencrypt-prod created
+Deploy cluster issuer:
 
-# Verify cluster issuer
+```bash
+kubectl apply -f cluster-issuer.yaml
+```
+
+Verify cluster issuer:
+
+```bash
 kubectl get clusterissuer
+```
+
+You should see a new issuer in ready state:
+
+```bash
 NAME               READY   AGE
 letsencrypt-prod   True    32s
 ```
@@ -182,16 +223,27 @@ letsencrypt-prod   True    32s
 
 In order to use request and use a certificate, you need to add new annotation `cert-manager.io/cluster-issuer` in `metadata` key and `tls` in `spec` key for ingress record.
 
+Apply new ingress record definition:
+
 ```bash
-# Apply new definition
 kubectl apply -f drupal-ingress-tls.yaml
+```
 
-# Monitor the cert manager logs
+To monitor the cert manager operation, follow the pod logs:
+
+```bash
 kubectl logs -f -cert-manager -l app=cert-manager
+```
 
-# Verify the TLS by hitting the http endpoint
-# You will see redirection to https
-curl -I -L http://drupal.buldogchef.com
+Finally, verify the TLS by requesting content:
+
+```bash
+curl --head --location http://drupal.buldogchef.com
+```
+
+You should see a redirection to `https` endpoint where the content is served:
+
+```bash
 HTTP/1.1 308 Permanent Redirect
 Date: Fri, 12 Aug 2022 10:27:32 GMT
 Content-Type: text/html
