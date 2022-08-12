@@ -4,18 +4,35 @@
 
 ### Ingress Controller
 
+In order to deploy ingress-nginx as an ingress coontroller for Kubernetes follow these steps:
+
+Add helm repository for ingress-nginx:
+
 ```bash
-# Add helm repository for ingress-nginx
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+```
 
-# Deploy ingress-nginx in default namespace
+Then, deploy ingress-nginx in default namespace:
+
+```bash
 helm install ingress-nginx ingress-nginx/ingress-nginx
+```
 
-# Retrieve the service external address
+Save service external address in environment variable:
+
+```bash
 INGRESS_EXT_IP=$(kubectl get svc ingress-nginx-controller  -o=jsonpath="{.status.loadBalancer.ingress[].ip}")
+```
 
-# Verify the reachability, it is normal to get a HTTP/404 since no rules have been set
-curl -I "http://$INGRESS_EXT_IP/"
+Finally, create a HTTP request, and display only document info with `--head` argument:
+
+```bash
+curl --head "http://$INGRESS_EXT_IP/"
+```
+
+If everything worked well, you should see the following response.
+
+```bash
 HTTP/1.1 404 Not Found
 Date: Tue, 09 Aug 2022 10:34:36 GMT
 Content-Type: text/html
@@ -23,24 +40,48 @@ Content-Length: 146
 Connection: keep-alive
 ```
 
+The `HTTP/404 Not Found` is expected since we did not created any ingress records yet. We will do that in next section.
+
 ### Ingress Record
 
-The ingress record defintion is in `drupal-ingress.yaml` file.
+Ingress records are needed to properly route traffic that is reaching the ingress controller external address.
+
+Start by examining the record defintion is in `drupal-ingress.yaml` file.
+
+Next, create new ingress record:
 
 ```bash
-# Create new ingress record
 kubectl apply -f drupal-ingress.yaml
-ingress.networking.k8s.io/drupal created
+```
 
-# Display ingress record for drupal namespace
+Next, display ingress record for drupal namespace:
+
+```bash
 kubectl get ingress -n drupal
+```
+
+If the record was created successfully, you should see similar output as below:
+
+```bash
 NAME     CLASS    HOSTS                ADDRESS          PORTS   AGE
 drupal   <none>   drupal.buldogchef.com   192.46.238.100   80      2m25s
+```
 
-# Verify the reachability, this assumes that the DNS record for the drupal.example.com
-# has been set locally for testing purposes or at your dns provider
+Next, verify the application reachability. This assumes that the DNS record for the `drupal.buldogchef.com` has been set locally for testing purposes or at your DNS hosting provider.
 
-curl -I "http://drupal.buldogchef.com/"
+```bash
+curl --head "http://drupal.buldogchef.com/"
+```
+
+For quick test, without any DNS change, a custom header can be defined in the request.
+
+```bash
+curl --head --header 'Host: drupal.buldogchef.com' $INGRESS_EXT_IP
+```
+
+In either case, the response should contain a `HTTP/1.1 200 OK` response, indicating that the website is reachable thorough the ingress.
+
+```bash
 HTTP/1.1 200 OK
 Date: Tue, 09 Aug 2022 10:55:15 GMT
 Content-Type: text/html; charset=UTF-8
@@ -56,40 +97,38 @@ Permissions-Policy: interest-cohort=()
 Expires: Sun, 19 Nov 1978 05:00:00 GMT
 X-Generator: Drupal 9 (https://www.drupal.org)
 X-Drupal-Cache: MISS
-
-# If you don't have DNS records set up, you can still test by setting the ost header
-# However proper DNS record will be required for certificate generation
-curl -I -H 'Host: drupal.buldogchef.com' $INGRESS_EXT_IP
-HTTP/1.1 200 OK
-Date: Fri, 12 Aug 2022 09:25:20 GMT
-Content-Type: text/html; charset=UTF-8
-Connection: keep-alive
-X-Powered-By: PHP/8.0.22
-Cache-Control: must-revalidate, no-cache, private
-X-Drupal-Dynamic-Cache: MISS
-X-UA-Compatible: IE=edge
-Content-language: en
-X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
-Permissions-Policy: interest-cohort=()
-Expires: Sun, 19 Nov 1978 05:00:00 GMT
-X-Generator: Drupal 9 (https://www.drupal.org)
-X-Drupal-Cache: HIT
 ```
 
 After the service is reachable through ingress, you can disable external reachability through Node by changing service specification type from `NodePort` to `ClusterIP`.
 
+Verify the current service port mapping
+
 ```bash
-# Verify the current service port mapping
 kubectl get svc drupal -n drupal
+```
+
+You should see that there is an existing port mapping between Node's higher level port `30432` and service port `80`
+
+```bash
 NAME     TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
 drupal   NodePort   10.128.16.41   <none>        80:30432/TCP   43m
+```
 
-# Apply the new configuration
+Next, apply the new service definition from file:
+
+```bash
 kubectl apply -f drupal-service.yaml
+```
 
-# Verify the current service port mapping
+Finally, verify the new service port mapping:
+
+```bash
 kubectl get svc drupal -n drupal
+```
+
+This time there is no external port mapping for the service:
+
+```bash
 NAME     TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
 drupal   ClusterIP   10.128.16.41   <none>        80/TCP    44m
 ```
