@@ -8,7 +8,7 @@ metadata:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-  - host: drupal.example.com
+  - host: drupal.buldogchef.com
     http:
       paths:
         - path: /

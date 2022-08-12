@@ -56,4 +56,23 @@ Permissions-Policy: interest-cohort=()
 Expires: Sun, 19 Nov 1978 05:00:00 GMT
 X-Generator: Drupal 9 (https://www.drupal.org)
 X-Drupal-Cache: MISS
+
+# If you don't have DNS records set up, you can still test by setting the ost header
+# However proper DNS record will be required for certificate generation
+curl -I -H 'Host: drupal.buldogchef.com' $INGRESS_EXT_IP
+HTTP/1.1 200 OK
+Date: Fri, 12 Aug 2022 09:25:20 GMT
+Content-Type: text/html; charset=UTF-8
+Connection: keep-alive
+X-Powered-By: PHP/8.0.22
+Cache-Control: must-revalidate, no-cache, private
+X-Drupal-Dynamic-Cache: MISS
+X-UA-Compatible: IE=edge
+Content-language: en
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Permissions-Policy: interest-cohort=()
+Expires: Sun, 19 Nov 1978 05:00:00 GMT
+X-Generator: Drupal 9 (https://www.drupal.org)
+X-Drupal-Cache: HIT
 ```
