@@ -37,47 +37,84 @@
 
 ### Quick start
 
+Start by creating a new python virtual environment:
+
 ```bash
 pyenv virtualenv 3.9.6 k8s-cookbook
+```
+
+Next, install required pip packages:
+
+```bash
 pip install --upgrade pip setuptools
 pip install -r requirements-dev.txt
 ```
+
 
 ## Deployments
 
 ### Setup
 
+Create new deployment from hello-go image:
+
 ```bash
-# Create new deployment from hello-go image
 kubectl create deployment hello-go
+```
 
-# Check status of deployment
+Check status of deployment:
+
+```bash
 kubectl get deployment hello-go
+```
 
-# Check status of pods
+Check status of pods:
+
+```bash
 kubectl get pods
+```
 
-# Get more details about pod
+Get more details about pod:
+
+```bash
 kubectl describe pod hello-go
+```
+Check
+Modify deployment:
 
-# Modify deployment
+```bash
 kubectl edit deployment hello-go
+```
 
-# Expose deployment
+Expose deployment:
+
+```bash
 kubectl expose deployment hello-go --type=LoadBalancer --port=8180
+```
 
-# Check the service
+Check the service:
+
+```bash
 kubectl get service hello-go
+```
 
-#Interact with service (when using minikube)
+Interact with service (when using minikube):
+
+```bash
 minikube service hello-go
+```
 
-# Check instances logs
+Display instances logs:
+
+```bash
 kubectl logs -l app=hello-go
+```
 
-# Get all resources
+Get all resources:
+
+```bash
 kubectl get all
 ```
+
 
 ### Scaling
 
@@ -95,17 +132,33 @@ for pod in $(kubectl get po -l app=hello-go -oname); do echo $pod; kubectl logs 
 kubectl logs -lapp=hello-go --all-containers --prefix
 ```
 
+
 ### Cleanup
 
+Delete the service:
+
 ```bash
-# Delete the Service
 kubectl delete service hello-go
+```
 
-# Delete the Deployment and associated pods
+Delete the Deployment and associated pods:
+
+```bash
 kubectl delete deployment hello-go
+```
 
-# Delete the container image
+Delete the container image:
+
+```bash
 docker rmi hello-go
+```
+
+The default delete argument will wait for pods to gracefully shutdown. You also have an option to force this action.
+
+For example:
+
+```bash
+kubectl delete deployment --grace-period=0 --force
 ```
 
 
