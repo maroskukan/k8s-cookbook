@@ -78,7 +78,7 @@ Get more details about pod:
 ```bash
 kubectl describe pod hello-go
 ```
-Check
+
 Modify deployment:
 
 ```bash
@@ -118,18 +118,28 @@ kubectl get all
 
 ### Scaling
 
+Increase number of instances to 4
+
 ```bash
-# Increase number of instances to 4
 kubectl scale deployments/hello-go --replicas=4
+```
 
-# Check deployment
+Check deployment:
+
+```bash
 kubectl get deployment hello-go
+```
 
-# Get logs by pod
-# https://github.com/kubernetes/kubernetes/pull/76471
+Get logs by pod using for loop:
+
+```bash
 for pod in $(kubectl get po -l app=hello-go -oname); do echo $pod; kubectl logs $pod; done;
+```
 
-kubectl logs -lapp=hello-go --all-containers --prefix
+Get logs by pod using labels:
+
+```bash
+kubectl logs -l app=hello-go --all-containers --prefix
 ```
 
 
@@ -153,9 +163,7 @@ Delete the container image:
 docker rmi hello-go
 ```
 
-The default delete argument will wait for pods to gracefully shutdown. You also have an option to force this action.
-
-For example:
+The default delete argument will wait for pods to gracefully shutdown. You also have an option to force this action:
 
 ```bash
 kubectl delete deployment --grace-period=0 --force
@@ -166,12 +174,21 @@ kubectl delete deployment --grace-period=0 --force
 
 Namespaces are used to organize resources in cluster. By default new applications are deployed in the `default` namespace. There are also some tthat kubernetes uses for its operation.
 
-```bash
-# Create a sample infrastructure deployment
-kubectl apply -f sample-infrastrcuture.yaml
+Create a sample infrastructure deployment:
 
-# Display existing namespaces
+```bash
+kubectl apply -f sample-infrastrcuture.yaml
+```
+
+Display existing namespaces:
+
+```bash
 kubectl get namespaces
+```
+
+You should see output similar to this:
+
+```bash
 NAME              STATUS   AGE
 auth              Active   112s
 cart              Active   112s
@@ -185,25 +202,43 @@ purchasing        Active   111s
 quote             Active   111s
 social            Active   111s
 web               Active   112s
+```
 
-# Display pods from cart namespace
+Display all pods from `cart` namespace:
+
+```
 kubectl get pods -n cart
 ```
+
 
 ### Formatting
 
 You can change the default output format using the `-o` flag.
 
+Using the wide format to display all pods in `cart` namespace:
+
 ```bash
-# Using the wide format
 kubectl get pods -o wide -n cart
+```
+
+You should see output similar to this:
+
+```bash
 NAME           READY   STATUS    RESTARTS      AGE   IP            NODE       NOMINATED NODE   READINESS GATES
 cart-dev       1/1     Running   1 (80s ago)   11m   172.17.0.12   minikube   <none>           <none>
 cart-prod      1/1     Running   1 (95s ago)   11m   172.17.0.6    minikube   <none>           <none>
 cart-staging   1/1     Running   1 (73s ago)   11m   172.17.0.11   minikube   <none>           <none>
+```
 
-# Using the json format
+Display all pods in `cart` namespace using `json` output format:
+
+```bash
 kubectl get pods -o json -n cart
+```
+
+This output can be further parsed using `jq` tool:
+
+```json
 
     "apiVersion": "v1",
     "items": [
@@ -224,9 +259,17 @@ kubectl get pods -o json -n cart
 ...                },
 [ Omitted for brevity ]
 ...
+```
 
-# Using the yaml format
+Display all pods in `cart` namespace using `yaml` output format:
+
+```bash
 kubectl get pods -o yaml -n cart
+```
+
+The output is now formwatted using yaml:
+
+```yaml
 apiVersion: v1
 items:
 - apiVersion: v1
@@ -247,10 +290,18 @@ items:
 ...
 ```
 
+
 ### Sorting
+
+In order to sort based on various properties, use the `--sort-by` argument.
 
 ```bash
 kubectl get pods --sort-by=.metadata.name --all-namespaces | head -n 6
+```
+
+The list of pods is sorted by pod name instead of namespace:
+
+```bash
 NAMESPACE     NAME                               READY   STATUS    RESTARTS        AGE
 cart          cart-dev                           1/1     Running   1 (6m30s ago)   17m
 cart          cart-prod                          1/1     Running   1 (6m45s ago)   17m
@@ -259,12 +310,21 @@ catalog       catalog-dev                        1/1     Running   1 (6m ago)   
 catalog       catalog-prod                       1/1     Running   1 (6m4s ago)    17m
 ```
 
+
 ### Filtering
+
+In order to filter a property, you can use output type of `jsonpath`:
 
 ```bash
 kubectl get pods -o=jsonpath="{..image}" -l env=staging -n cart
+```
+
+The output from this command shows that we are using the following images in `cart` namespace in `staging` environment.
+
+```bash
 karthequian/ruby:latest karthequian/ruby:latest
 ```
+
 
 ## Labels
 
@@ -283,45 +343,59 @@ metadata:
     release-version: "1.0"
 ```
 
+
 ### Display
 
 After the resource has been create you can display label values with `--show-labels` argument.
 
+Display pods with associated labels:
+
 ```bash
-# Display pods with associated labels
 kubectl get pods --show-labels
+```
+
+The `LABELS` column is displayed along all the applied labels:
+
+```bash
 NAME         READY   STATUS    RESTARTS   AGE   LABELS
 helloworld   1/1     Running   0          84s   application_type=ui,author=maros,env=production,release-version=1.0
 ```
+
 
 ### Update
 
 You can also create or update labels during runtime with `label` resource.
 
+Create or update label value:
+
 ```bash
-# Create or update label value
 kubectl label pod/helloworld app_id=1092134
 kubectl label pod/helloworld app=helloworldapp
 ```
 
+
 ### Delete
 
-```
-# Delete a label
+Delete a label:
+
+```bash
 kubectl label pod/helloworld app-
 ```
+
 
 ### Filter
 
 In order to filter based on labels, create a sample infrastructure.
 
+Create a bunch of sample pods:
+
 ```bash
-# Create a bunch of sample pods
 kubectl apply -f https://raw.githubusercontent.com/karthequian/Kubernetes/master/04_02_Searching_for_labels/sample-infrastructure-with-labels.yml
 ```
 
+Display pods with associated labels:
+
 ```bash
-# Display pods with associated labels
 NAME               READY   STATUS    RESTARTS   AGE    LABELS
 cart-dev           1/1     Running   0          116s   application_type=api,dev-lead=carisa,env=development,release-version=1.0,team=ecommerce
 cart-prod          1/1     Running   0          116s   application_type=api,dev-lead=carisa,env=production,release-version=1.0,team=ecommerce
@@ -348,9 +422,13 @@ social-staging     1/1     Running   0          116s   application_type=api,dev-
 
 Search with `selector` argument.
 
+Display pods in production environment:
+
 ```bash
-# Display pods in production environment
 kubectl get pods --selector env=production
+```
+
+```bash
 NAME            READY   STATUS    RESTARTS   AGE
 cart-prod       1/1     Running   0          4m6s
 catalog-prod    1/1     Running   0          4m6s
@@ -359,15 +437,27 @@ login-prod      1/1     Running   0          4m6s
 ordering-prod   1/1     Running   0          4m6s
 quote-prod      1/1     Running   0          4m6s
 social-prod     1/1     Running   0          4m6s
+```
 
-# Display pods with multiple labels
+Display pods with multiple labels:
+
+```bash
 kubectl get pods --selector dev-lead=carisa,env=development
+```
+
+```bash
 NAME         READY   STATUS    RESTARTS   AGE
 cart-dev     1/1     Running   0          6m46s
 social-dev   1/1     Running   0          6m46s
+```
 
-# Display pods with multiple labels - negation
+Display pods with multiple labels - negation:
+
+```bash
 kubectl get pods --selector dev-lead!=carisa,env=development --show-labels
+```
+
+```bash
 NAME           READY   STATUS    RESTARTS   AGE     LABELS
 catalog-dev    1/1     Running   0          9m52s   application_type=api,dev-lead=daniel,env=development,release-version=4.0,team=ecommerce
 homepage-dev   1/1     Running   0          9m53s   application_type=ui,dev-lead=karthik,env=development,release-version=12.0,team=web
@@ -378,9 +468,13 @@ quote-dev      1/1     Running   0          9m52s   application_type=api,dev-lea
 
 Instead of `--selector` argument you can also use the `-l` argument.
 
+Display pods with certain release-version value (in or notin)
+
 ```bash
-# Display pods with certain release-version value (in or notin)
 kubectl get pods -l 'release-version in (1.0,2.0)'
+```
+
+```bash
 NAME               READY   STATUS    RESTARTS      AGE
 cart-dev           1/1     Running   1 (33s ago)   12m
 cart-prod          1/1     Running   1 (63s ago)   12m
@@ -401,9 +495,13 @@ social-staging     1/1     Running   1 (38s ago)   12m
 
 You can also use labels to delete a resource.
 
+Delete all pods owned by carisa in dev environment:
+
 ```bash
-# Delete all pods owned by carisa in dev environment
 kubectl delete pod -l dev-lead=carisa,env=development
+```
+
+```bash
 pod "cart-dev" deleted
 pod "social-dev" deleted
 ```
@@ -413,20 +511,34 @@ pod "social-dev" deleted
 
 The `readinessProbe` and `livenessProbe` defined in deployment specification are used for application level healthchecks.
 
-```bash
-# Apply a new deployment
-kubectl apply -f helloworld-with-probes.yaml
+Apply a new deployment:
 
-# Display the deployment status
+```bash
+kubectl apply -f helloworld-with-probes.yaml
+```
+
+Display the deployment status:
+
+```bash
 kubectl get deployment/helloworld-deployment-with-probes
+```
+
+```bash
 NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
 helloworld-deployment-with-probes   1/1     1            1           27m
+```
 
-# Display the replicaset status
+Display the replicaset status:
+
+```bash
 kubectl get replicaset
+```
+
+```bash
 NAME                                           DESIRED   CURRENT   READY   AGE
 helloworld-deployment-with-probes-644c46c778   1         1         1       30m
 ```
+
 
 ## Tips
 
@@ -460,27 +572,48 @@ export DOCKER_CERT_PATH=/mnt/c/Users/maros_kukan/.minikube
 
 This will affect the current shell session only. To make changes persistent you can create a new context.
 
+Retrieve the Minikube's host address and certificate paths:
+
 ```bash
-# Retrieve the Minikube's host address and certificate paths
 DOCKER_HOST="tcp://$(minikube ip):2376"
 DOCKER_CERT_PATH=$(wslpath "$(wslvar USERPROFILE)/.minikube/certs")
+```
 
-# Create and update Minikube context
+Create and update Minikube context:
+
+```bash
 docker context create minikube &>/dev/null
 --description "Secured connection from localhost toward minikube" \
 --docker "host=${DOCKER_HOST},ca=${DOCKER_CERT_PATH}/ca.pem,cert=${DOCKER_CERT_PATH}/cert.pem,key=${DOCKER_CERT_PATH}/key.pem" &>/dev/null
+```
 
-# Switch to context
+Switch to context
+
+```bash
 docker context use minikube
+```
 
-# Verify control plane
+Verify control plane:
+
+```bash
 docker info -f {{.Name}}
+```
+
+```bash
 minikube
+```
 
-# To switch back to default context
+To switch back to default context
+
+```bash
 docker context use default
+```
 
+```bash
 docker info -f {{.Name}}
+```
+
+```bash
 docker-desktop
 ```
 
@@ -488,13 +621,17 @@ docker-desktop
 
 With `minikube tunnel` it might happen that existing the foreground process in Windows does not remove the route that was added after process closure. This can be observerd by looking at host's active routes.
 
+Show all routes that include minikube's address:
+
 ```powershell
-# Show all routes that include minikube's address
 netsh int ipv4 sh route | FindStr $(minikube ip)
+```
+
+```powershell
 No       Manual    1    10.96.0.0/12               39  172.17.237.195
 ```
 
-To remove them manually.
+To remove them manually:
 
 ```powershell
 netsh int ipv4 delete route 10.96.0.0/12 39 $(minikube ip)
