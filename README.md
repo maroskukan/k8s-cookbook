@@ -19,8 +19,9 @@
     - [Delete](#delete)
     - [Filter](#filter)
   - [Application Health Check](#application-health-check)
-    - [Application Upgrades](#application-upgrades)
-    - [Application rollback](#application-rollback)
+  - [Application Upgrades](#application-upgrades)
+  - [Application Rollback](#application-rollback)
+  - [Basic Troubleshooting](#basic-troubleshooting)
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
@@ -542,7 +543,7 @@ helloworld-deployment-with-probes-644c46c778   1         1         1       30m
 ```
 
 
-### Application Upgrades
+## Application Upgrades
 
 Apply the *black* version of the deployment:
 
@@ -600,11 +601,27 @@ navbar-deployment-65cf9bd74d   0         0         0       53m
 navbar-deployment-85ffd45b97   3         3         3       22m
 ```
 
-### Application rollback
+## Application Rollback
 
 ```bash
 kubectl rollout undo deployment navbar-deployment
 ```
+
+
+## Basic Troubleshooting
+
+```bash
+kubectl describe <pod-name>
+```
+
+```bash
+kubectl logs <pod-name>
+```
+
+```bash
+kubectl exec -it <pod-name> /bin/bash
+```
+
 
 ## Tips
 
