@@ -19,6 +19,8 @@
     - [Delete](#delete)
     - [Filter](#filter)
   - [Application Health Check](#application-health-check)
+    - [Application Upgrades](#application-upgrades)
+    - [Application rollback](#application-rollback)
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
@@ -539,6 +541,70 @@ NAME                                           DESIRED   CURRENT   READY   AGE
 helloworld-deployment-with-probes-644c46c778   1         1         1       30m
 ```
 
+
+### Application Upgrades
+
+Apply the *black* version of the deployment:
+
+```bash
+kubectl apply -f helloworld-black.yaml
+```
+
+Retrieve the Node Port:
+
+```bash
+NODE_PORT=$(kubectl get service navbar-service -o jsonpath="{.spec.ports[].nodePort}")
+```
+
+Retrieve the Node Address:
+
+```bash
+NODE_ADDRESS=$(kubectl get nodes -o=jsonpath="{.items[].status.addresses[].address}")
+```
+
+Verify the application:
+
+```bash
+curl --head http://$NODE_ADDRESS:$NODE_PORT
+```
+
+In case of success you should see the following response:
+
+```bash
+HTTP/1.1 200 OK
+Server: nginx/1.10.3 (Ubuntu)
+Date: Wed, 17 Aug 2022 10:10:09 GMT
+Content-Type: text/html
+Content-Length: 4216
+Last-Modified: Sun, 15 Oct 2017 23:49:41 GMT
+Connection: keep-alive
+ETag: "59e3f415-1078"
+Accept-Ranges: bytes
+```
+
+When you view this application in browser, you will see that the navbar background color is black. Now update this deployment with new image version:
+
+```bash
+kubectl set image deployment/navbar-deployment helloworld=karthequian/helloworld:blue
+```
+
+This will create a new replicaset `navbar-deployment-85ffd45b97` which has a new image defined.
+
+```bash
+kubectl get rs
+```
+
+```bash
+NAME                           DESIRED   CURRENT   READY   AGE
+navbar-deployment-65cf9bd74d   0         0         0       53m
+navbar-deployment-85ffd45b97   3         3         3       22m
+```
+
+### Application rollback
+
+```bash
+kubectl rollout undo deployment navbar-deployment
+```
 
 ## Tips
 
