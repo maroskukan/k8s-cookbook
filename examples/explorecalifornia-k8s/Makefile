@@ -3,6 +3,9 @@
 run_website:
 	docker build -t explorecalifornia.com . && \
 		docker run -p 8080:80 -d --name explorecalifornia.com --rm explorecalifornia.com
+push_website:
+	docker tag explorecalifornia.com localhost:5000/explorecalifornia.com && \
+	docker push localhost:5000/explorecalifornia.com
 
 stop_website:
 	docker stop explorecalifornia.com
