@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: explorecalifornia.com
+  name: explorecalifornia.com
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: explorecalifornia.com
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: explorecalifornia.com
+    spec:
+      containers:
+      - image: localhost:5000/explorecalifornia.com
+        name: explorecalifornia-com-nfn8j
+        resources: {}
+status: {}
