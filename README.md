@@ -46,6 +46,7 @@
 - [kind](https://kind.sigs.k8s.io/)
 - [helm](https://helm.sh/)
 - [Play With k8s](https://labs.play-with-k8s.com/)
+- [CNCF Trailmap](https://github.com/cncf/trailmap)
 
 ## Local environment - kubeadm
 
