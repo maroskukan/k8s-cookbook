@@ -46,3 +46,9 @@ delete_docker_registry:
 
 delete_kind_cluster: delete_docker_registry
 	kind delete cluster --name explorecalifornia.com
+
+install_app:
+	helm upgrade --atomic --install explore-california-website ./chart
+
+uninstall_app:
+	helm uninstall explore-california-website
