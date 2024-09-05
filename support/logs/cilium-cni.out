@@ -1,0 +1,14 @@
+serviceaccount/cilium created
+serviceaccount/cilium-operator created
+secret/cilium-ca created
+secret/hubble-server-certs created
+configmap/cilium-config created
+clusterrole.rbac.authorization.k8s.io/cilium created
+clusterrole.rbac.authorization.k8s.io/cilium-operator created
+clusterrolebinding.rbac.authorization.k8s.io/cilium created
+clusterrolebinding.rbac.authorization.k8s.io/cilium-operator created
+role.rbac.authorization.k8s.io/cilium-config-agent created
+rolebinding.rbac.authorization.k8s.io/cilium-config-agent created
+service/hubble-peer created
+daemonset.apps/cilium created
+deployment.apps/cilium-operator created
