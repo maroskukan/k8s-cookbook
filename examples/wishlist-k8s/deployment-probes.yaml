@@ -1,0 +1,83 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: wishlist-deployment
+  labels:
+    app: wishlist
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wishlist
+  template:
+    metadata:
+      labels:
+        app: wishlist
+    spec:
+      containers:
+      - name: wishlist
+        image: karthequian/wishlist:1.0
+        ports:
+        - name: wishlist-port
+          containerPort: 8080
+        env:
+        - name: PORT
+          value: "8080"
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: wishlist-port
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+      - name: catalog
+        image: karthequian/wishlist-catalog:1.0
+        ports:
+        - name: catalog-port
+          containerPort: 8081
+        env:
+        - name: PORT
+          value: "8081"
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: catalog-port
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+      - name: auth
+        image: karthequian/wishlist-auth:1.0
+        ports:
+        - name: auth-port
+          containerPort: 8082
+        env:
+        - name: PORT
+          value: "8082"
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: auth-port
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: wishlist-service
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    app: wishlist
+  ports:
+  - name: wishlist-port
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  - name: wishlist-catalog-port
+    protocol: TCP
+    port: 8081
+    targetPort: 8081
+  - name: wishlist-auth-port
+    protocol: TCP
+    port: 8082
+    targetPort: 8082
