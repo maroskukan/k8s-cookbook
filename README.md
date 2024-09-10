@@ -11,6 +11,13 @@
     - [Cluster creation](#cluster-creation)
     - [Cluster verification](#cluster-verification)
   - [Local Environment minikube](#local-environment-minikube)
+    - [Installation](#installation-1)
+    - [Cluster creation](#cluster-creation-1)
+    - [Cluster verification](#cluster-verification-1)
+    - [Cluster customization](#cluster-customization)
+      - [Resouce allocation](#resouce-allocation)
+      - [Node scaling](#node-scaling)
+      - [Container Network Interface](#container-network-interface)
   - [Quick start](#quick-start)
   - [Deployments](#deployments)
     - [Setup](#setup)
@@ -32,6 +39,15 @@
   - [Application Upgrades](#application-upgrades)
   - [Application Rollback](#application-rollback)
   - [Basic Troubleshooting](#basic-troubleshooting)
+  - [Helm](#helm)
+    - [Installation - Linux binary](#installation---linux-binary)
+    - [Installation - rpm package](#installation---rpm-package)
+    - [Public charts](#public-charts)
+      - [Artifact Hub](#artifact-hub)
+      - [Customization](#customization)
+      - [Versions](#versions)
+      - [Cleanup](#cleanup-1)
+    - [Custom charts](#custom-charts)
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
@@ -442,6 +458,91 @@ kubectl cluster-info --context kind-kind
 ```
 
 ## Local Environment minikube
+
+### Installation
+
+```bash
+
+```
+### Cluster creation
+
+```bash
+minikube start
+```
+
+### Cluster verification
+
+```bash
+# Verify nodes status
+kubectl get nodes -o wide
+NAME   STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION           CONTAINER-RUNTIME
+demo   Ready    control-plane   12s   v1.30.0   192.168.49.2   <none>        Ubuntu 22.04.4 LTS   6.10.7-200.fc40.x86_64   docker://26.1.1
+
+# Verify all pods
+kubectl get pods -A
+NAMESPACE     NAME                           READY   STATUS    RESTARTS        AGE
+kube-system   coredns-7db6d8ff4d-p7645       1/1     Running   0               3m8s
+kube-system   etcd-demo                      1/1     Running   0               3m22s
+kube-system   kube-apiserver-demo            1/1     Running   0               3m23s
+kube-system   kube-controller-manager-demo   1/1     Running   0               3m22s
+kube-system   kube-proxy-bn6lf               1/1     Running   0               3m9s
+kube-system   kube-scheduler-demo            1/1     Running   0               3m22s
+kube-system   storage-provisioner            1/1     Running   1 (2m38s ago)   3m21s
+
+# Verify pod deployment
+kubectl run --rm --stdin --image=hello-world \
+            --restart=Never --request-timeout=30 \
+            hw-pod
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+[ ... Output omitted ...]
+```
+
+### Cluster customization
+
+#### Resouce allocation
+
+```
+minikube start ...
+```
+
+#### Node scaling
+
+```
+# Add another node
+minikube node add
+```
+
+#### Container Network Interface
+
+[Kindnet](https://github.com/aojea/kindnet) is the default CNI plugin in for minikube. It is a simple and capable of assigning IP addresses to pods running in the cluster and it does not support network policies.
+
+[Calico]() is another popular CNI which offers more capability than kindnet. The easiest way to install Calico for Minikube is to use minikube options when create cluster. Other methods include using a Manifest and Operator.
+
+```bash
+# Remove existing cluster
+minikube delete -p demo
+
+# Install calico
+minikube start --network-plugin=cni --cni=calico
+
+# Verify Calico
+kubectl get pods -A -l 'k8s-app in (calico-kube-controllers,calico-node)'
+NAMESPACE     NAME                                      READY   STATUS    RESTARTS        AGE
+kube-system   calico-kube-controllers-ddf655445-whzbx   1/1     Running   1 (3m36s ago)   3m55s
+kube-system   calico-node-t4jr2                         1/1     Running   0               3m55s
+```
+
+
 
 
 ## Quick start
@@ -1138,9 +1239,209 @@ kubectl logs <pod-name>
 ```
 
 ```bash
-kubectl exec -it <pod-name> /bin/bash
+kubectl exec -it <pod-name> -- /bin/bash
 ```
 
+## Helm
+
+Helm is the de-facto package management solution for kubernetes.
+
+### Installation - Linux binary
+
+```bash
+# Retrieve the latest binary release number
+release=$(curl --silent "https://api.github.com/repos/helm/helm/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+
+# Download the latest binary release
+curl -L https://get.helm.sh/helm-$release-linux-amd64.tar.gz \
+     | sudo tar -xz --strip-components=1 -C /usr/local/bin linux-amd64/helm
+
+# Verify the binary
+helm version
+version.BuildInfo{Version:"3.15.4", GitCommit:"fa9efb07d9d8debbb4306d72af76a383895aa8c4", GitTreeState:"clean", GoVersion:"go1.22.6"}
+```
+
+### Installation - rpm package
+
+```bash
+# Update package list
+sudo dnf update
+
+# Install rpm package
+sudo dnf install -t helm
+
+# Verify the installation
+helm version
+version.BuildInfo{Version:"3.15.4", GitCommit:"fa9efb07d9d8debbb4306d72af76a383895aa8c4", GitTreeState:"clean", GoVersion:"go1.22.6"}
+```
+
+### Public charts
+
+#### Artifact Hub
+
+Artifact Hub provides ready to use helm charts to deploy popular application easily. One of the popular charts include the `kube-state-metrics` available from bitnami repository. In order to deploy this chart we need to initialize the repository first.
+
+```bash
+# Initialize Bitnami Helm Chart repository
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Update helm repositories to retrieve latest version of charts
+helm repo update
+
+# List available repository
+helm repo list
+bitnami https://charts.bitnami.com/bitnami
+```
+
+Next, we install `kube-state-metrics` chart in a new namespace.
+
+```bash
+# Create a new namespace
+kubectl create namespace metrics
+
+# Install the chart in metrics namespace
+helm install kube-state-metrics bitnami/kube-state-metrics -n metrics
+
+# List all objects that are part of metrics namespaces
+kubectl get all -n metrics
+NAME                                      READY   STATUS    RESTARTS   AGE
+pod/kube-state-metrics-6b5b49c49d-wntgq   1/1     Running   0          8h
+
+NAME                         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/kube-state-metrics   ClusterIP   10.109.60.234   <none>        8080/TCP   8h
+
+NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/kube-state-metrics   1/1     1            1           8h
+
+NAME                                            DESIRED   CURRENT   READY   AGE
+replicaset.apps/kube-state-metrics-6b5b49c49d   1         1         1       8h
+
+kubectl logs pod/kube-state-metrics-6b5b49c49d-wntgq -n metrics
+I0910 11:36:22.413959       1 wrapper.go:120] "Starting kube-state-metrics"
+W0910 11:36:22.414587       1 client_config.go:659] Neither --kubeconfig nor --master was specified.  Using the inClusterConfig.  This might not work.
+I0910 11:36:22.415001       1 server.go:218] "Used resources" resources=["statefulsets","volumeattachments","configmaps","mutatingwebhookconfigurations","horizontalpodautoscalers","services","pods","namespaces","leases","networkpolicies","deployments","certificatesigningrequests","ingresses","poddisruptionbudgets","resourcequotas","storageclasses","daemonsets","endpoints","replicasets","replicationcontrollers","nodes","jobs","limitranges","persistentvolumeclaims","persistentvolumes","cronjobs","secrets"]
+I0910 11:36:22.415076       1 types.go:227] "Using all namespaces"
+[ ... output omitted...]
+```
+
+Finally we use `port-forward` feature to access the `kube-state-metrics` service.
+
+```bash
+# Use port-forward option to expose kube-state-metrics service
+kubectl port-forward svc/kube-state-metrics -n metrics 8080:8080 &
+
+# Retrieve data from /metrics path
+curl -L localhost:8080/metrics | head
+# Retrieve the content of metrics endpoint
+# HELP kube_configmap_annotations Kubernetes annotations converted to Prometheus labels.
+# TYPE kube_configmap_annotations gauge
+# HELP kube_configmap_labels [STABLE] Kubernetes labels converted to Prometheus labels.
+# TYPE kube_configmap_labels gauge
+# HELP kube_configmap_info [STABLE] Information about configmap.
+# TYPE kube_configmap_info gauge
+kube_configmap_info{namespace="kube-system",configmap="coredns"} 1
+kube_configmap_info{namespace="kube-system",configmap="extension-apiserver-authentication"} 1
+kube_configmap_info{namespace="kube-system",configmap="kube-apiserver-legacy-service-account-token-tracking"} 1
+kube_configmap_info{namespace="kube-system",configmap="kube-proxy"} 1
+[ ... output omitted ...]
+
+# Exit the port-forward
+kill %1
+[1]+  Terminated              kubectl port-forward service/kube-state-metrics -n metrics 8080:8080
+```
+
+#### Customization
+
+Retrieve information for a given chart.
+
+```bash
+# Display chart metadata
+helm show chart bitnami/kube-state-metrics
+
+
+# Display default values
+helm show values bitnami/kube-state-metrics | yq .
+```
+
+#### Versions
+
+```bash
+# Retrieve detauls about helm deployment in metrics namespace
+helm ls -n metrics
+NAME              	NAMESPACE	REVISION	UPDATED                                 	STATUS  	CHART                    	APP VERSION
+kube-state-metrics	metrics  	1       	2024-09-10 13:35:58.267339455 +0200 CEST	deployed	kube-state-metrics-4.2.13	2.13.0 
+
+# Set specific version
+helm upgrade kube-state-metrics bitnami/kube-state-metrics --version 4.2.12 -n metrics
+Release "kube-state-metrics" has been upgraded. Happy Helming!
+NAME: kube-state-metrics
+LAST DEPLOYED: Tue Sep 10 22:45:00 2024
+NAMESPACE: metrics
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+CHART NAME: kube-state-metrics
+CHART VERSION: 4.2.12
+APP VERSION: 2.13.0
+
+** Please be patient while the chart is being deployed **
+
+Watch the kube-state-metrics Deployment status using the command:
+
+    kubectl get deploy -w --namespace metrics kube-state-metrics
+
+kube-state-metrics can be accessed via port "8080" on the following DNS name from within your cluster:
+
+    kube-state-metrics.metrics.svc.cluster.local
+
+To access kube-state-metrics from outside the cluster execute the following commands:
+
+    echo "URL: http://127.0.0.1:9100/"
+    kubectl port-forward --namespace metrics svc/kube-state-metrics 9100:8080
+
+WARNING: There are "resources" sections in the chart not set. Using "resourcesPreset" is not recommended for production. For production installations, please set the following values according to your workload needs:
+  - resources
++info https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+```
+
+Other popular charts include [ingress nginx](https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx) and [datadog](https://artifacthub.io/packages/helm/datadog/datadog).
+
+#### Cleanup
+
+```bash
+# Delete the chart
+helm delete kube-state-metrics -n metrics
+release "kube-state-metrics" uninstalled
+
+# Delete the namespace
+kubectl delete ns metrics
+namespace "metrics" deleted
+```
+
+### Custom charts
+
+Generate a new Helm chart
+```bash
+cd $_
+helm create sample-chart
+cd $_
+# Helm created the following file structure
+tree
+.
+├── charts
+├── Chart.yaml
+├── templates
+│   ├── deployment.yaml
+│   ├── _helpers.tpl
+│   ├── hpa.yaml
+│   ├── ingress.yaml
+│   ├── NOTES.txt
+│   ├── serviceaccount.yaml
+│   ├── service.yaml
+│   └── tests
+│       └── test-
+```
 
 ## Tips
 
