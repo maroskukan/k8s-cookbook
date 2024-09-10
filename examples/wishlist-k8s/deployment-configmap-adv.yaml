@@ -43,6 +43,13 @@ spec:
       containers:
       - name: wishlist
         image: karthequian/wishlist:1.0
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
         ports:
         - containerPort: 8080
         env:
@@ -54,6 +61,13 @@ spec:
           mountPath: "/var/lib/wishlist/"
       - name: catalog
         image: karthequian/wishlist-catalog:1.0
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
         ports:
         - containerPort: 8081
         env:
@@ -65,6 +79,13 @@ spec:
           mountPath: "/var/lib/wishlist/"
       - name: auth
         image: karthequian/wishlist-auth:1.0
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
         ports:
         - containerPort: 8082
         env:
