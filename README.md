@@ -2,6 +2,9 @@
 
 - [Kubernetes](#kubernetes)
   - [Documentation](#documentation)
+  - [Essential tools](#essential-tools)
+    - [kubectl](#kubectl)
+    - [kubeconform](#kubeconform)
   - [Local environment - kubeadm](#local-environment---kubeadm)
     - [Installation - control plane node](#installation---control-plane-node)
     - [Installation - worker node](#installation---worker-node)
@@ -63,6 +66,24 @@
 - [helm](https://helm.sh/)
 - [Play With k8s](https://labs.play-with-k8s.com/)
 - [CNCF Trailmap](https://github.com/cncf/trailmap)
+
+## Essential tools
+
+### kubectl
+
+```bash
+release=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+sudo curl -L -o /usr/local/bin/kubectl "https://dl.k8s.io/release/$release/bin/linux/amd64/kubectl"
+sudo chmod +x /usr/local/bin/kubectl
+kubectl version --version
+```
+
+### kubeconform
+
+```bash
+
+```
+
 
 ## Local environment - kubeadm
 
@@ -429,12 +450,18 @@ kubectl delete deployment nginx
 
 ## Local Environment kind
 
-Kind lets you create Kubernetes clusters locally inside Docker.
+Kind lets you create Kubernetes clusters locally inside Docker. It is great for testing on local developer machine.
 
 ### Installation
 
 ```bash
-curl -LO https://github.com/kubernetes-sigs/kind/releases/download/v0.24.0/kind-linux-amd64
+# Retrieve the latest binary release number
+version=$(curl --silent "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest" | jq -r .'tag_name')
+
+# Download the latest binary release
+curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$version/kind-linux-amd64
+
+# Install the latest binary release
 sudo install kind-linux-amd64 /usr/local/bin/kind && rm kind-linux-amd64
 ```
 
@@ -1250,10 +1277,10 @@ Helm is the de-facto package management solution for kubernetes.
 
 ```bash
 # Retrieve the latest binary release number
-release=$(curl --silent "https://api.github.com/repos/helm/helm/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+version=$(curl --silent "https://api.github.com/repos/helm/helm/releases/latest" | jq -r .'tag_name')
 
 # Download the latest binary release
-curl -L https://get.helm.sh/helm-$release-linux-amd64.tar.gz \
+curl -L https://get.helm.sh/helm-$version-linux-amd64.tar.gz \
      | sudo tar -xz --strip-components=1 -C /usr/local/bin linux-amd64/helm
 
 # Verify the binary
@@ -1429,18 +1456,18 @@ cd $_
 # Helm created the following file structure
 tree
 .
-├── charts
-├── Chart.yaml
-├── templates
-│   ├── deployment.yaml
-│   ├── _helpers.tpl
-│   ├── hpa.yaml
-│   ├── ingress.yaml
-│   ├── NOTES.txt
-│   ├── serviceaccount.yaml
-│   ├── service.yaml
-│   └── tests
-│       └── test-
+├── charts                   # Directory containing sub-charts or dependencies
+├── Chart.yaml               # Metadata file defining the chart's name, version, and dependencies
+├── templates                # Directory containing Kubernetes resource templates
+│   ├── deployment.yaml      # Template for creating a Kubernetes Deployment resource
+│   ├── _helpers.tpl         # Helper template file with reusable functions for other templates
+│   ├── hpa.yaml             # Template for creating a Horizontal Pod Autoscaler (HPA) resource
+│   ├── ingress.yaml         # Template for creating a Kubernetes Ingress resource for traffic routing
+│   ├── NOTES.txt            # Plain text file with instructions or information displayed after installation
+│   ├── serviceaccount.yaml  # Template for creating a Kubernetes ServiceAccount resource
+│   ├── service.yaml         # Template for creating a Kubernetes Service resource
+│   └── tests                # Directory for Helm tests
+│       └── test-connection.yaml  # Template for creating test resources, typically for validating the release
 ```
 
 ## Tips
