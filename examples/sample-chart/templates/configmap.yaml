@@ -1,0 +1,7 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap-{{.Chart.Version}}
+data:
+  port: "8080"
+  allowTesting: {{if eq .Values.env "staging"}}"true"{{else}}"false"{{end}}
