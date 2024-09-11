@@ -63,6 +63,11 @@
       - [Versions](#versions)
       - [Cleanup](#cleanup-1)
     - [Custom charts](#custom-charts)
+      - [Creation](#creation)
+      - [Customization - ConfigMap object](#customization---configmap-object)
+      - [Customization - Secret object](#customization---secret-object)
+      - [Rollbacks](#rollbacks)
+      - [Templating](#templating)
   - [Tips](#tips)
     - [Hyper-V vSwitch Configuration](#hyper-v-vswitch-configuration)
     - [Minikube Docker Configuration](#minikube-docker-configuration)
@@ -1632,27 +1637,326 @@ namespace "metrics" deleted
 
 ### Custom charts
 
-Generate a new Helm chart
+#### Creation
+
+Generate a new template Helm chart.
+
 ```bash
-cd $_
 helm create sample-chart
 cd $_
 # Helm created the following file structure
 tree
 .
-├── charts                   # Directory containing sub-charts or dependencies
-├── Chart.yaml               # Metadata file defining the chart's name, version, and dependencies
-├── templates                # Directory containing Kubernetes resource templates
-│   ├── deployment.yaml      # Template for creating a Kubernetes Deployment resource
-│   ├── _helpers.tpl         # Helper template file with reusable functions for other templates
-│   ├── hpa.yaml             # Template for creating a Horizontal Pod Autoscaler (HPA) resource
-│   ├── ingress.yaml         # Template for creating a Kubernetes Ingress resource for traffic routing
-│   ├── NOTES.txt            # Plain text file with instructions or information displayed after installation
-│   ├── serviceaccount.yaml  # Template for creating a Kubernetes ServiceAccount resource
-│   ├── service.yaml         # Template for creating a Kubernetes Service resource
-│   └── tests                # Directory for Helm tests
+├── charts                        # Directory containing sub-charts or dependencies
+├── Chart.yaml                    # Metadata file defining the chart's name, version, and dependencies
+├── templates                     # Directory containing Kubernetes resource templates
+│   ├── deployment.yaml           # Template for creating a Kubernetes Deployment resource
+│   ├── _helpers.tpl              # Helper template file with reusable functions for other templates
+│   ├── hpa.yaml                  # Template for creating a Horizontal Pod Autoscaler (HPA) resource
+│   ├── ingress.yaml              # Template for creating a Kubernetes Ingress resource for traffic routing
+│   ├── NOTES.txt                 # Plain text file with instructions or information displayed after installation
+│   ├── serviceaccount.yaml       # Template for creating a Kubernetes ServiceAccount resource
+│   ├── service.yaml              # Template for creating a Kubernetes Service resource
+│   └── tests                     # Directory for Helm tests
 │       └── test-connection.yaml  # Template for creating test resources, typically for validating the release
+└── values.yaml                   # Default configuration values for the chart
 ```
+
+#### Customization - ConfigMap object
+
+Lets edit this boilerplate by removing all files from templates directory and creaing a new one called configmap.yaml wit the following content.
+
+```bash
+rm -rf templates/*
+cat <<EOF > templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap
+data:
+  port: "8080"
+EOF
+```
+
+Install the current version of chart.
+
+```bash
+helm install first-chart .
+NAME: first-chart
+LAST DEPLOYED: Wed Sep 11 12:32:47 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+Verify the newly created object.
+
+```bash
+kubectl get configmap first-chart-configmap
+NAME                    DATA   AGE
+first-chart-configmap   1      57s
+
+kubectl describe configmap first-chart-configmap
+Name:         first-chart-configmap
+Namespace:    default
+Labels:       app.kubernetes.io/managed-by=Helm
+Annotations:  meta.helm.sh/release-name: first-chart
+              meta.helm.sh/release-namespace: default
+
+Data
+====
+port:
+----
+8080
+Events:  <none>
+```
+
+Lets update the `configmap.yaml` using `yq` in place editing.
+
+```bash
+yq eval '.data.allowTesting = "true" ' -i templates/configmap.yaml
+```
+
+The update file will have the following content:
+
+```yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap
+data:
+  port: "8080"
+  allowTesting: "true"
+```
+
+To show how helm fill render the template use the `template` command.
+
+```bash
+helm template first-chart .
+---
+# Source: sample-chart/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap
+data:
+  port: "8080"
+  allowTesting: "true"
+```
+
+Finally update the helm deployment.
+
+```bash
+# Upgrade the helm chart
+helm upgrade first-chart .
+Release "first-chart" has been upgraded. Happy Helming!
+NAME: first-chart
+LAST DEPLOYED: Wed Sep 11 12:40:11 2024
+NAMESPACE: default
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+
+# Verify configmap value
+kubectl describe configmap first-chart-configmap
+Name:         first-chart-configmap
+Namespace:    default
+Labels:       app.kubernetes.io/managed-by=Helm
+Annotations:  meta.helm.sh/release-name: first-chart
+              meta.helm.sh/release-namespace: default
+
+Data
+====
+allowTesting:
+----
+true
+port:
+----
+8080
+Events:  <none>
+```
+
+#### Customization - Secret object
+
+Create a new manifest for secret object. Remember the values need to be base64 encoded. By using cat with redirection it is possible to do this using echo with pipe to base64.
+
+```bash
+cat <<EOF > templates/secret.yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: first-chart-secret
+data:
+  username: $(echo -n 'admin' | base64 )
+  password: $(echo -n 'password' | base64 )
+EOF
+```
+The resulting template file is:
+
+```yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: first-chart-secret
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+```
+
+Render the template.
+
+```bash
+helm template first-chart .
+---
+# Source: sample-chart/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap
+data:
+  port: "8080"
+  allowTesting: "true"
+---
+# Source: sample-chart/templates/secret.yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: first-chart-secret
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+```
+
+And deploy and verify.
+
+```bash
+# Deploy new revision
+helm upgrade first-chart .
+
+# Verify secret object
+for key in username password; do
+ echo "$key: $(kubectl get secret first-chart-secret -o jsonpath="{.data.$key}" | base64 --decode)"
+done
+# Response
+username: admin
+password: password
+```
+
+#### Rollbacks
+
+Start by identifying all charts that have been deployed.
+
+```bash
+helm list
+NAME            NAMESPACE       REVISION        UPDATED                                         STATUS          CHART                   APP VERSION
+first-chart     default         4               2024-09-11 12:56:11.813988214 +0200 CEST        deployed        sample-chart-0.1.0      1.16.0  
+```
+
+Focus on `first-chart` deployment and look at its history.
+
+```bash
+helm history first-chart
+REVISION        UPDATED                         STATUS          CHART                   APP VERSION     DESCRIPTION                                                                                                                                                                                                 
+1               Wed Sep 11 12:32:47 2024        superseded      sample-chart-0.1.0      1.16.0          Install complete                                                                                                                                                                                            
+2               Wed Sep 11 12:40:11 2024        superseded      sample-chart-0.1.0      1.16.0          Upgrade complete                                                                                                                                                                                            
+3               Wed Sep 11 12:54:54 2024        failed          sample-chart-0.1.0      1.16.0          Upgrade "first-chart" failed: failed to create resource: secret in version "v1" cannot be handled as a Secret: no kind "secret" is registered for version "v1" in scheme "pkg/api/legacyscheme/scheme.go:30"
+4               Wed Sep 11 12:56:11 2024        deployed        sample-chart-0.1.0      1.16.0          Upgrade complete   
+```
+
+Rollback to previos version
+
+```bash
+helm rollback first-chart 2
+Rollback was a success! Happy Helming!
+```
+
+
+#### Templating
+
+Update the templates to use a value from `Chart.yaml`.
+
+```bash
+yq eval '.metadata.name = "first-chart-configmap-{{.Chart.Version}}" ' -i templates/configmap.yaml
+```
+
+```yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap-{{.Chart.Version}}
+data:
+  port: "8080"
+  allowTesting: "true"
+```
+
+Render the value to verify and then deploy and verify again.
+
+```bash
+helm template first-chart . --show-only templates/configmap.yaml | yq .metadata.name
+first-chart-configmap-0.1.0
+
+helm upgrade first-chart .
+
+kubectl get cm
+NAME                          DATA   AGE
+first-chart-configmap-0.1.0   2      19s
+kube-root-ca.crt              1      44m
+```
+
+Update the templates to use an updated value from `values.yaml`.
+
+```bash
+# Display default replica count
+yq '.replicaCount' ./values.yaml
+1
+
+# Update the count
+yq eval '.replicaCount = 3' -i ./values.yaml
+```
+
+To reference this value in a template you can use the `{{ .Values.replicaCount }}`
+
+Helm also support conditional statements.
+
+```yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap-{{.Chart.Version}}
+data:
+  port: "8080"
+  allowTesting: {{if eq .Values.env "staging"}}"true"{{else}}"false"{{end}}
+```
+
+Do a quick test using a variable override.
+
+```bash
+# With env definition
+helm template first-chart . --set env=staging --show-only templates/configmap.yaml
+---
+# Source: sample-chart/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap-0.1.0
+data:
+  port: "8080"
+  allowTesting: "true"
+
+# Without env definition
+helm template first-chart . --show-only templates/configmap.yaml
+---
+# Source: sample-chart/templates/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: first-chart-configmap-0.1.0
+data:
+  port: "8080"
+  allowTesting: "false"
+```
+
 
 ## Tips
 
