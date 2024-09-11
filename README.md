@@ -5,6 +5,13 @@
   - [Essential tools](#essential-tools)
     - [kubectl](#kubectl)
     - [kubeconform](#kubeconform)
+    - [kustomize](#kustomize)
+  - [Deployment options](#deployment-options)
+    - [Strategies](#strategies)
+    - [Managed offering](#managed-offering)
+      - [Traditional Kubernetes Offerings](#traditional-kubernetes-offerings)
+      - [Serverless Kubernetes Offerings](#serverless-kubernetes-offerings)
+    - [Enterprise offering](#enterprise-offering)
   - [Local environment - kubeadm](#local-environment---kubeadm)
     - [Installation - control plane node](#installation---control-plane-node)
     - [Installation - worker node](#installation---worker-node)
@@ -13,13 +20,18 @@
     - [Installation](#installation)
     - [Cluster creation](#cluster-creation)
     - [Cluster verification](#cluster-verification)
+    - [Cluster customization](#cluster-customization)
+      - [Kubernetes version](#kubernetes-version)
+      - [Node scaling](#node-scaling)
+    - [Cluster cleanup](#cluster-cleanup)
   - [Local Environment minikube](#local-environment-minikube)
     - [Installation](#installation-1)
     - [Cluster creation](#cluster-creation-1)
     - [Cluster verification](#cluster-verification-1)
-    - [Cluster customization](#cluster-customization)
+    - [Cluster customization](#cluster-customization-1)
+      - [Kubernetes version](#kubernetes-version-1)
       - [Resouce allocation](#resouce-allocation)
-      - [Node scaling](#node-scaling)
+      - [Node scaling](#node-scaling-1)
       - [Container Network Interface](#container-network-interface)
   - [Quick start](#quick-start)
   - [Deployments](#deployments)
@@ -80,9 +92,76 @@ kubectl version --version
 
 ### kubeconform
 
-```bash
+[Kubeconform](https://github.com/yannh/kubeconform) is a Kubernetes manifest validation tool. Incorporate it into your CI, or use it locally to validate your Kubernetes configuration!
 
+```bash
+# Retrieve the latest binary release number
+version=$(curl --silent "https://api.github.com/repos/yannh/kubeconform/releases/latest" | jq -r .'tag_name')
+
+# Download and install the latest binary release
+curl -sL https://github.com/yannh/kubeconform/releases/download/$version/kubeconform-linux-amd64.tar.gz \
+      | sudo tar -xz -C /usr/local/bin kubeconform
+
+# Verify installation
+kubeconform -v
+v0.6.7
 ```
+
+### kustomize
+
+[kustomize](https://github.com/kubernetes-sigs/kustomize) lets you customize raw, template-free YAML files for multiple purposes, leaving the original YAML untouched and usable as is. Useful when migrating Docker `Dockerfile` to K8s `manifest`.
+
+```bash
+# Retrieve the latest binary release number
+version=$(curl --silent "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest" | jq -r .'tag_name' | cut -d"/" -f2)
+
+https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
+
+# Download and install the latest binary release
+curl -sL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${version}/kustomize_${version}_linux_amd64.tar.gz \
+      | sudo tar -xz -C /usr/local/bin kustomize
+
+# Verify installation
+kustomize version
+v5.4.3
+```
+
+
+## Deployment options
+
+### Strategies
+
+| Kubernetes Offering | Automates Control Plane Provisioning | Automates Worker Node Provisioning and Joining | Automates Networking and Storage Configuration | Compliant with regulations | Privides additional Enterprise Grade Features |
+|-|-|-|-|-|-|
+| Cluster only | Y | | | | |
+| Fully automated | Y | Y | Y | | |
+| Kuberentes native | Y | Y | | | |
+| Managed traditional | Y | Y | Y | | |
+| Managed serverless | Y | Y | Y | | |
+| Enterprise | Y | Y | Y | Y | Y |
+
+### Managed offering
+
+#### Traditional Kubernetes Offerings
+
+- Manage the control plane
+- You are responsible for joining nodes to your control plane usually
+- You pay for worker nodes separately
+- Examples include Azure Kubernetes Service, Elastic Kubernetes Service, Google Kubernetes Engine
+
+#### Serverless Kubernetes Offerings
+
+- Handle control plane, worker node registration, and autoscaling - you just bring your apps
+- You control notrhing, providers handles everything
+- Examples, AWS Fargate, GKE Autopilot, AKS ACI
+
+### Enterprise offering
+
+- Brings the benefit of managed offering into you private cloud
+- Signifacntly more flexible
+- Compliant with regulations
+- Enterprise ready customizations e.g. networking and private registries
+- Examples, Rancher Kubernetes Enginer, VMware Tanzu Kubernetes Grid, Red Hat OpenShift
 
 
 ## Local environment - kubeadm
@@ -465,23 +544,116 @@ curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$version/kind
 sudo install kind-linux-amd64 /usr/local/bin/kind && rm kind-linux-amd64
 ```
 
-Optionally download the appropriate `kubectl` version.
+### Cluster creation
+
+Creating a local cluster with kind is as simple as running the following command.
 
 ```bash
-curl -LO https://dl.k8s.io/release/v1.21.0/bin/linux/amd64/kubectl
-sudo install kubectl /usr/local/bin/kubectl && rm kubectl
+kind create cluster
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.31.0)
+ ✓ Preparing nodes
+ ✓ Writing configuration
+ ✓ Starting control-plane
+ ✓ Installing CNI
+ ✓ Installing StorageClass
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
 ```
 
-### Cluster creation
+This will create a cluster called `kind` with latest kubernetes version supported by kind.
+
+### Cluster verification
+
+```bash
+# Verify node status
+kubectl get nodes -o wide
+NAME                 STATUS   ROLES           AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION           CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   4m52s   v1.31.0   172.18.0.2    <none>        Debian GNU/Linux 12 (bookworm)   6.10.7-200.fc40.x86_64   containerd://1.7.18
+
+# Verify all pods
+kubectl get pods -A
+NAMESPACE            NAME                                         READY   STATUS    RESTARTS   AGE
+kube-system          coredns-6f6b679f8f-fcxk5                     1/1     Running   0          5m16s
+kube-system          coredns-6f6b679f8f-l98tq                     1/1     Running   0          5m16s
+kube-system          etcd-kind-control-plane                      1/1     Running   0          5m22s
+kube-system          kindnet-zr8ml                                1/1     Running   0          5m16s
+kube-system          kube-apiserver-kind-control-plane            1/1     Running   0          5m22s
+kube-system          kube-controller-manager-kind-control-plane   1/1     Running   0          5m21s
+kube-system          kube-proxy-mjnss                             1/1     Running   0          5m16s
+kube-system          kube-scheduler-kind-control-plane            1/1     Running   0          5m21s
+local-path-storage   local-path-provisioner-57c5987fd4-85g4h      1/1     Running   0          5m16s
+
+# Verify pod deployment
+kubectl run --rm --stdin --image=hello-world \
+            --restart=Never --request-timeout=30 \
+            hw-pod
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+[ ... Output omitted ...]
+```
+
+### Cluster customization
+
+Kind provides number of options to customize the cluster deployment. You can define these custom values using cli options or inside a configuration file.
+
+#### Kubernetes version
+
+For instance, using cli options you can define a name and desired kubernetes version for the cluster.
 
 ```bash
 kind create cluster --name kind --image=kindest/node:v1.21.12
 ```
 
-### Cluster verification
+#### Node scaling
+
+Create a cluster configuration file.
 
 ```bash
-kubectl cluster-info --context kind-kind
+cat <<EOF > cluster.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+EOF
+```
+
+Next, start a cluster using the `--config` option.
+
+```bash
+# Create multi node cluster
+kind create cluster --name multinode --config ./cluster.yaml
+
+# Verify node status
+kubectl get nodes
+NAME                      STATUS   ROLES           AGE   VERSION
+multinode-control-plane   Ready    control-plane   41s   v1.31.0
+multinode-worker          Ready    <none>          28s   v1.31.0
+multinode-worker2         Ready    <none>          28s   v1.31.0
+```
+
+### Cluster cleanup
+
+To delete the kind cluster use the following command.
+
+```bash
+kind delete cluster --name multinode
+Deleting cluster "multinode" ...
+Deleted nodes: ["multinode-worker2" "multinode-control-plane" "multinode-worker"]
 ```
 
 ## Local Environment minikube
@@ -489,7 +661,8 @@ kubectl cluster-info --context kind-kind
 ### Installation
 
 ```bash
-
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
 ```
 ### Cluster creation
 
@@ -500,7 +673,7 @@ minikube start
 ### Cluster verification
 
 ```bash
-# Verify nodes status
+# Verify node status
 kubectl get nodes -o wide
 NAME   STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION           CONTAINER-RUNTIME
 demo   Ready    control-plane   12s   v1.30.0   192.168.49.2   <none>        Ubuntu 22.04.4 LTS   6.10.7-200.fc40.x86_64   docker://26.1.1
@@ -536,15 +709,28 @@ To generate this message, Docker took the following steps:
 
 ### Cluster customization
 
+#### Kubernetes version
+
+For instance, using cli options you can define a name and desired kubernetes version for the cluster.
+
+```bash
+minikube start --kubernetes-version=v1.31.0
+
+# Get node information
+kubectl get nodes -o wide
+NAME       STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION           CONTAINER-RUNTIME
+minikube   Ready    control-plane   67s   v1.31.0   192.168.49.2   <none>        Ubuntu 22.04.4 LTS   6.10.7-200.fc40.x86_64   docker://26.1.1
+```
+
 #### Resouce allocation
 
-```
+```bash
 minikube start ...
 ```
 
 #### Node scaling
 
-```
+```bash
 # Add another node
 minikube node add
 ```
@@ -568,8 +754,6 @@ NAMESPACE     NAME                                      READY   STATUS    RESTAR
 kube-system   calico-kube-controllers-ddf655445-whzbx   1/1     Running   1 (3m36s ago)   3m55s
 kube-system   calico-node-t4jr2                         1/1     Running   0               3m55s
 ```
-
-
 
 
 ## Quick start
@@ -1279,7 +1463,7 @@ Helm is the de-facto package management solution for kubernetes.
 # Retrieve the latest binary release number
 version=$(curl --silent "https://api.github.com/repos/helm/helm/releases/latest" | jq -r .'tag_name')
 
-# Download the latest binary release
+# Download and install the latest binary release
 curl -L https://get.helm.sh/helm-$version-linux-amd64.tar.gz \
      | sudo tar -xz --strip-components=1 -C /usr/local/bin linux-amd64/helm
 
