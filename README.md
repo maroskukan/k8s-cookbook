@@ -4,6 +4,7 @@
   - [Documentation](#documentation)
   - [Essential tools](#essential-tools)
     - [kubectl](#kubectl)
+    - [krew](#krew)
     - [kubeconform](#kubeconform)
     - [kustomize](#kustomize)
   - [Deployment options](#deployment-options)
@@ -33,7 +34,9 @@
       - [Resouce allocation](#resouce-allocation)
       - [Node scaling](#node-scaling-1)
       - [Container Network Interface](#container-network-interface)
+      - [Addons](#addons)
   - [Quick start](#quick-start)
+  - [Resources](#resources)
   - [Deployments](#deployments)
     - [Setup](#setup)
     - [Scaling](#scaling)
@@ -93,6 +96,48 @@ release=$(curl -L -s https://dl.k8s.io/release/stable.txt)
 sudo curl -L -o /usr/local/bin/kubectl "https://dl.k8s.io/release/$release/bin/linux/amd64/kubectl"
 sudo chmod +x /usr/local/bin/kubectl
 kubectl version --version
+```
+
+### krew
+
+[Krew](https://github.com/kubernetes-sigs/krew) is a plugin manager for kubectl.
+
+Download and install krew.
+
+```bash
+(
+  set -x; cd "$(mktemp -d)" &&
+  OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
+  ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" &&
+  KREW="krew-${OS}_${ARCH}" &&
+  curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&
+  tar zxvf "${KREW}.tar.gz" &&
+  ./"${KREW}" install krew
+)
+```
+
+Update your shell configuration. Example below for bash.
+
+```bash
+# Create custom bash configuration
+mkdir ~/.bashrc.d
+echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"'| tee ~/.bashrc.d/krew.conf
+
+# Apply the change
+source ~/.bashrc
+```
+
+Verify installation
+
+```bash
+kubectl krew update
+Updated the local copy of plugin index.
+```
+
+To install a plugin use the `install` option.
+
+```bash
+kubectl krew install tree
 ```
 
 ### kubeconform
@@ -549,6 +594,9 @@ curl -LO https://github.com/kubernetes-sigs/kind/releases/download/$version/kind
 sudo install kind-linux-amd64 /usr/local/bin/kind && rm kind-linux-amd64
 ```
 
+To upgrade minikube to latest version, just repeat the above steps again.
+
+
 ### Cluster creation
 
 Creating a local cluster with kind is as simple as running the following command.
@@ -661,6 +709,27 @@ Deleting cluster "multinode" ...
 Deleted nodes: ["multinode-worker2" "multinode-control-plane" "multinode-worker"]
 ```
 
+### Kubeconfig
+
+By default when you start a new cluster, kind ensures that your default kubeconfig `~/.kube/config` is updated. In case you prefer to keep the configuration files in separate files for each environment, you can do so by updating the `KUBECONFIG` variable first.
+
+```bash
+# Backup your current config file, just in case
+cp ~/.kube/config{,.$(date +%Y%m%d)}
+
+# Sinkhole it to /dev/null
+ln -sf /dev/null ~/.kube/config
+
+# Update the KUBECONFIG env var
+export KUBECONFIG=~/.kube/kind
+
+# Regenerated the configuration for minikube
+kind export kubeconfig
+
+# Test access to cluster
+kubectl cluster-info > /dev/null && echo "Exit code 0 so we are OK"
+```
+
 ## Local Environment minikube
 
 ### Installation
@@ -669,6 +738,9 @@ Deleted nodes: ["multinode-worker2" "multinode-control-plane" "multinode-worker"
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
 ```
+
+To upgrade minikube to latest version, just repeat the above steps again.
+
 ### Cluster creation
 
 ```bash
@@ -760,6 +832,55 @@ kube-system   calico-kube-controllers-ddf655445-whzbx   1/1     Running   1 (3m3
 kube-system   calico-node-t4jr2                         1/1     Running   0               3m55s
 ```
 
+#### Addons
+
+There are other useful addons such as `dashboard`, `metrics-server`, `ingress` and `ingress-dns`. Below is a brief description of these.
+
+- dashboard: A web-based UI for managing and monitoring Kubernetes clusters.
+- metrics-server: Collects resource usage (CPU/memory) data for autoscaling and monitoring.
+- ingress: Manages external HTTP/HTTPS access to services via an NGINX Ingress Controller.
+- ingress-DNS: Provides automatic DNS resolution for services exposed through the Ingress addon.
+
+You can enable the specific addon by using the `--addons` option.
+
+```bash
+minikube start \
+         --addons=dashboard \
+         --addons=metrics-server \
+         --addons=ingress \
+         --addons=ingress-dns
+```
+
+### Cluster cleanup
+
+To delete the minikube cluster use the following command.
+
+```bash
+minikube delete
+```
+
+### Kubeconfig
+
+By default when you start a new cluster, minikube ensures that your default kubeconfig `~/.kube/config` is updated. In case you prefer to keep the configuration files in separate files for each environment, you can do so by updating the `KUBECONFIG` variable first.
+
+```bash
+# Backup your current config file, just in case
+cp ~/.kube/config{,.$(date +%Y%m%d)}
+
+# Sinkhole it to /dev/null
+ln -sf /dev/null ~/.kube/config
+
+# Update the KUBECONFIG env var
+export KUBECONFIG=~/.kube/minikube
+
+# Regenerated the configuration for minikube
+minikube update-context
+
+# Test access to cluster
+kubectl cluster-info > /dev/null && echo "Exit code 0 so we are OK"
+```
+
+
 
 ## Quick start
 
@@ -776,11 +897,17 @@ pip install --upgrade pip setuptools
 pip install -r requirements-dev.txt
 ```
 
+## Resources
 
+To list all resources tha kubernetes provides we can use the `api-resources` option.
+
+```bash
+kubectl api-resources
+```
 
 ## Deployments
 
-To create a blank manifest file for a deployment you can use the `kubectl` with the 
+To create a blank manifest file for a deployment you can use the `kubectl` with the `create` command.
 
 ```bash
 # Generate the deployment template
