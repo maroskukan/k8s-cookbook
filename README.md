@@ -7,6 +7,8 @@
     - [krew](#krew)
     - [kubeconform](#kubeconform)
     - [kustomize](#kustomize)
+    - [skaffold](#skaffold)
+    - [telepresence](#telepresence)
   - [Deployment options](#deployment-options)
     - [Strategies](#strategies)
     - [Managed offering](#managed-offering)
@@ -25,6 +27,7 @@
       - [Kubernetes version](#kubernetes-version)
       - [Node scaling](#node-scaling)
     - [Cluster cleanup](#cluster-cleanup)
+    - [Kubeconfig](#kubeconfig)
   - [Local Environment minikube](#local-environment-minikube)
     - [Installation](#installation-1)
     - [Cluster creation](#cluster-creation-1)
@@ -35,6 +38,8 @@
       - [Node scaling](#node-scaling-1)
       - [Container Network Interface](#container-network-interface)
       - [Addons](#addons)
+    - [Cluster cleanup](#cluster-cleanup-1)
+    - [Kubeconfig](#kubeconfig-1)
   - [Quick start](#quick-start)
   - [Resources](#resources)
   - [Deployments](#deployments)
@@ -140,6 +145,8 @@ To install a plugin use the `install` option.
 kubectl krew install tree
 ```
 
+Some other popular plugins include `sniff` which is useful for capturing network traffic.
+
 ### kubeconform
 
 [Kubeconform](https://github.com/yannh/kubeconform) is a Kubernetes manifest validation tool. Incorporate it into your CI, or use it locally to validate your Kubernetes configuration!
@@ -165,17 +172,40 @@ v0.6.7
 # Retrieve the latest binary release number
 version=$(curl --silent "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest" | jq -r .'tag_name' | cut -d"/" -f2)
 
-https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
-
 # Download and install the latest binary release
 curl -sL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${version}/kustomize_${version}_linux_amd64.tar.gz \
       | sudo tar -xz -C /usr/local/bin kustomize
 
-# Verify installation
+# Verify the installation
 kustomize version
 v5.4.3
 ```
 
+### skaffold
+
+[skaffold](https://github.com/GoogleContainerTools/skaffold) is a cli tool that handles the workflow for building, pushing and deploying your applications.
+
+```bash
+# Retrieve the latest binary release number
+version=$(curl --silent "https://api.github.com/repos/GoogleContainerTools/skaffold/releases/latest" | jq -r .'tag_name')
+
+# Download and install the latest binary release
+sudo curl -sLo /usr/local/bin/skaffold https://github.com/GoogleContainerTools/skaffold/releases/download/${version}/skaffold-linux-amd64
+
+sudo chmod +x /usr/loca/bin/skaffold
+
+# Verify the installation
+skaffold version
+v2.13.2
+```
+
+### telepresence
+
+[telepresence](https://github.com/telepresenceio/telepresence)
+
+```bash
+
+```
 
 ## Deployment options
 
