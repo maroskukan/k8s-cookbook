@@ -1,0 +1,50 @@
+services:
+  cp:
+    image: ubuntu:22.04
+    container_name: k8s-cp
+    hostname: cp
+    privileged: true
+    networks:
+      k8snet:
+        ipv4_address: 172.19.0.2
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    tty: true
+    stdin_open: true
+    command: /bin/bash -c "while true; do sleep 1000; done"
+
+  worker1:
+    image: ubuntu:22.04
+    container_name: k8s-worker1
+    hostname: worker1
+    privileged: true
+    networks:
+      k8snet:
+        ipv4_address: 172.19.0.3
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    tty: true
+    stdin_open: true
+    command: /bin/bash -c "while true; do sleep 1000; done"
+
+  worker2:
+    image: ubuntu:22.04
+    container_name: k8s-worker2
+    hostname: worker2
+    privileged: true
+    networks:
+      k8snet:
+        ipv4_address: 172.19.0.4
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    tty: true
+    stdin_open: true
+    command: /bin/bash -c "while true; do sleep 1000; done"
+
+networks:
+  k8snet:
+    name: k8snet
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
