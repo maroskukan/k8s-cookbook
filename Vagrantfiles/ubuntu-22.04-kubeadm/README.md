@@ -6,6 +6,7 @@ The `Vagrantfile` contains definition for two Ubuntu 22.04 virtual machines - on
 
 ```bash
 # Validate the Vagrantfile
+vagrant validate
 
 # Start and provision the environment
 vagrant up --provider=libvirt
@@ -23,11 +24,14 @@ vagrant destroy --force
 
 ## Kubernetes Cluster Deployment
 
-### Requirements
+### Hardware requirements
 
 The minimum system requirements are
 - 2 CPU
 - 2 GB of RAM
+
+### Software requirements
+
 - Swap disabled
 - Full network connectivity between hosts
 
