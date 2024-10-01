@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: keepr
+  labels:
+    app: keepr
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: minikube
+  containers:
+    - name: keepr
+      image: evildecay/etcdkeeper:latest
+      command: ["/opt/etcdkeeper/etcdkeeper.bin"]
+      args: ["-h", "0.0.0.0", "-p", "8080", "-usetls", "-cacert", "/certs/etcd/ca.crt", "-cert", "/certs/apiserver-etcd-client.crt", "-key", "/certs/apiserver-etcd-client.key"]
+      volumeMounts:
+        - name: certs
+          mountPath: /certs
+          readOnly: true
+  volumes:
+    - name: certs
+      hostPath:
+        path: /var/lib/minikube/certs
+        type: Directory
