@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypvpod
+  namespace: blue
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    volumeMounts:
+    - mountPath: "/data"
+      name: mymnt
+  volumes:
+  - name: mymnt
+    persistentVolumeClaim:
+      claimName: mypvc
